@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/getz-devs/librakeeper-server/internal/searcher/app"
 	"github.com/getz-devs/librakeeper-server/internal/searcher/config"
+	mongostorage "github.com/getz-devs/librakeeper-server/internal/searcher/storage/mongo"
 	"github.com/getz-devs/librakeeper-server/lib/prettylog"
 	"log/slog"
 	"os"
@@ -27,7 +28,13 @@ func main() {
 		slog.Int("port", cfg.GRPC.Port),
 	)
 
-	application := app.New(log, cfg.GRPC.Port)
+	databaseMongoConfig := mongostorage.DatabaseMongoConfig{
+		ConnectUrl: cfg.DatabaseMongo.ConnectURL,
+		Database:   cfg.DatabaseMongo.DatabaseName,
+		Collection: cfg.DatabaseMongo.CollectionName,
+	}
+
+	application := app.New(log, cfg.GRPC.Port, databaseMongoConfig)
 	go application.GRPCSrv.MustRun()
 
 	stop := make(chan os.Signal, 1)
@@ -40,6 +47,8 @@ func main() {
 	)
 
 	application.GRPCSrv.Stop()
+
+	application.Storage.Close()
 
 	log.Info("application fully stopped")
 }

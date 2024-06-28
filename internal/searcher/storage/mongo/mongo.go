@@ -15,18 +15,22 @@ type Storage struct {
 	col    *mongo.Collection
 }
 
-func New(connectUrl string) *Storage {
+type DatabaseMongoConfig struct {
+	ConnectUrl string
+	Database   string
+	Collection string
+}
+
+func New(databaseConfig DatabaseMongoConfig) *Storage {
 	const op = "storage.mongo.New"
 
-	//db, er = mgm.NewClient()
-
 	client, err := mongo.Connect(context.TODO(), options.Client().
-		ApplyURI(connectUrl))
+		ApplyURI(databaseConfig.ConnectUrl))
 	if err != nil {
 		panic(err)
 	}
 
-	coll := client.Database("sample_mflix").Collection("movies")
+	coll := client.Database(databaseConfig.Database).Collection(databaseConfig.Collection)
 
 	return &Storage{
 		client: client,
@@ -34,12 +38,11 @@ func New(connectUrl string) *Storage {
 	}
 }
 
-func (s *Storage) Close() error {
+func (s *Storage) Close() {
 	const op = "storage.mongo.Close"
 	if err := s.client.Disconnect(context.TODO()); err != nil {
 		panic(err)
 	}
-	return nil
 }
 
 func (s *Storage) SearchByISBN(ctx context.Context, isbn string) (*models.BooksSearchResult, error) {

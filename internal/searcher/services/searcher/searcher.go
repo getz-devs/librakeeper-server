@@ -29,7 +29,8 @@ func (s *SearcherService) SearchByISBN(ctx context.Context, isbn string) (*model
 	s.log.With(
 		slog.String("op", op),
 		slog.String("isbn", isbn),
-	).Info("searching by ISBN")
+	)
+	s.log.Info("searching by ISBN")
 
 	data, err := s.ISBNSearcher.SearchByISBN(ctx, isbn)
 	if err != nil {

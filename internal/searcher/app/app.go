@@ -9,18 +9,21 @@ import (
 
 type App struct {
 	GRPCSrv *grpcapp.App
+	Storage *mongostorage.Storage
 }
 
 func New(
 	log *slog.Logger,
 	grpcPort int,
+	databaseMongoConfig mongostorage.DatabaseMongoConfig,
 ) *App {
-	storage := mongostorage.New("mongodb://localhost:27017")
+	storage := mongostorage.New(databaseMongoConfig)
 	searcherService := searcher_service.New(log, storage)
 	grpcApp := grpcapp.New(log, searcherService, grpcPort)
 
 	return &App{
 		GRPCSrv: grpcApp,
+		Storage: storage,
 	}
 
 }
