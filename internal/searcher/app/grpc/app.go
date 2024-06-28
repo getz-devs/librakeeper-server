@@ -3,6 +3,7 @@ package grpcapp
 import (
 	"fmt"
 	searcherrpc "github.com/getz-devs/librakeeper-server/internal/searcher/grpc"
+	searcher_service "github.com/getz-devs/librakeeper-server/internal/searcher/services/searcher"
 	"google.golang.org/grpc"
 	"log/slog"
 	"net"
@@ -17,10 +18,11 @@ type App struct {
 // New creates a new App
 func New(
 	log *slog.Logger,
+	searchService *searcher_service.SearcherService,
 	port int,
 ) *App {
 	gRPCServer := grpc.NewServer()
-	searcherrpc.Register(gRPCServer)
+	searcherrpc.Register(gRPCServer, searchService)
 
 	return &App{
 		log:        log,

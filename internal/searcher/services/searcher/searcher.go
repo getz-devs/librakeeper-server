@@ -1,4 +1,4 @@
-package searcher
+package searcher_service
 
 import (
 	"context"
@@ -14,7 +14,7 @@ type SearcherService struct {
 
 // ISBNSearcher return models.BooksSearchResult
 type ISBNSearcher interface {
-	SearchByISBN(ctx context.Context, isbn string) (models.BooksSearchResult, error)
+	SearchByISBN(ctx context.Context, isbn string) (*models.BooksSearchResult, error)
 }
 
 func New(log *slog.Logger, ISBNSearcher ISBNSearcher) *SearcherService {
@@ -24,7 +24,7 @@ func New(log *slog.Logger, ISBNSearcher ISBNSearcher) *SearcherService {
 	}
 }
 
-func (s *SearcherService) SearchByISBN(ctx context.Context, isbn string) (models.BooksSearchResult, error) {
+func (s *SearcherService) SearchByISBN(ctx context.Context, isbn string) (*models.BooksSearchResult, error) {
 	const op = "searcher.SearcherService.SearchByISBN"
 	s.log.With(
 		slog.String("op", op),

@@ -8,4 +8,4 @@ type BookSearchResult struct {
 	Year      string
 }
 
-type BooksSearchResult []BookSearchResult
+type BooksSearchResult []*BookSearchResult

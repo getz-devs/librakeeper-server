@@ -13,11 +13,19 @@ type Config struct {
 	StoragePath string `yaml:"storage_path" env-required:"true"`
 
 	GRPC GRPCConfig `yaml:"grpc"`
+
+	DatabaseMongo DatabaseMongoConfig `yaml:"database_mongo"`
 }
 
 type GRPCConfig struct {
 	Port    int           `yaml:"port" env-default:"44044"`
 	Timeout time.Duration `yaml:"timeout" env-default:"10h"`
+}
+
+type DatabaseMongoConfig struct {
+	ConnectURL     string `yaml:"connect_url" env-required:"true"`
+	DatabaseName   string `yaml:"database_name" env-required:"true"`
+	CollectionName string `yaml:"collection_name_books" env-required:"true"`
 }
 
 func MustLoad() *Config {

@@ -21,7 +21,7 @@ func main() {
 
 	log := setupLogger(cfg.Env)
 
-	log.Info("starting ...",
+	log.Info("startingg ...",
 		slog.String("env", cfg.Env),
 		slog.Any("config", cfg),
 		slog.Int("port", cfg.GRPC.Port),
