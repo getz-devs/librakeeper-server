@@ -47,7 +47,7 @@ func New(
 		recovery.UnaryServerInterceptor(recoveryOpts...),
 		logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
 	))
-	searcherrpc.Register(gRPCServer, searchService)
+	searcherrpc.Register(gRPCServer, searchService, log)
 
 	return &App{
 		log:        log,

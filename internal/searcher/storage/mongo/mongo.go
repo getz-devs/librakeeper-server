@@ -56,14 +56,14 @@ func (s *Storage) SearchByISBN(ctx context.Context, isbn string) (*models.BooksS
 	var results models.BooksSearchResult
 
 	// Passing bson.D{{}} as the filter matches all documents in the collection
-	cur, err := s.col.Find(context.TODO(), bson.D{{}}, findOptions)
+	cur, err := s.col.Find(ctx, bson.D{{}}, findOptions)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Finding multiple documents returns a cursor
 	// Iterating through the cursor allows us to decode documents one at a time
-	for cur.Next(context.TODO()) {
+	for cur.Next(ctx) {
 
 		// create a value into which the single document can be decoded
 		var elem models.BookSearchResult

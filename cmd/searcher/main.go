@@ -1,4 +1,4 @@
-package main
+package searcher_cmd
 
 import (
 	"github.com/getz-devs/librakeeper-server/internal/searcher/app"
