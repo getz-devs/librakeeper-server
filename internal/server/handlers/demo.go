@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -9,6 +10,8 @@ import (
 
 func DemoHandler(c *gin.Context) {
 	foo := c.Query("foo")
+	id, _ := c.Get("uid")
+	fmt.Printf("id is %s\n", id)
 	if foo != "bar" {
 		log.Printf("foo: %v", foo)
 		c.JSON(http.StatusTeapot, gin.H{"error": "Not Happy :("})

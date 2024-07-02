@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"context"
-	"github.com/getz-devs/librakeeper-server/internal/server/services"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/auth"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,7 +18,7 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	token, err := services.VerifyIDToken(context.Background(), body.Token)
+	token, err := auth.VerifyIDToken(context.Background(), body.Token)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 		return
