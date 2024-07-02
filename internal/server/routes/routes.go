@@ -16,7 +16,7 @@ type Handlers struct {
 func SetupRoutes(router *gin.Engine, h *Handlers) {
 	api := router.Group("/api")
 
-	//api.GET("/health", handlers.HealthCheck)
+	api.GET("/health", handlers.HealthCheck)
 
 	userGroup := api.Group("/users")
 	{

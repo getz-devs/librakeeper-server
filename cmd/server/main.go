@@ -11,6 +11,7 @@ import (
 	"github.com/getz-devs/librakeeper-server/internal/server/services/auth"
 	"github.com/getz-devs/librakeeper-server/internal/server/services/storage"
 	"github.com/getz-devs/librakeeper-server/lib/prettylog"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
@@ -44,8 +45,16 @@ func main() {
 		Books:       handlers.NewBookHandlers(bookService, log),
 	}
 
+	// Configure CORS
+	corsConfig := cors.Config{
+		AllowOrigins:     []string{"https://libra.potat.dev", "http://localhost:3000"}, // Allow specific origins
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},          // Allow methods
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},          // Allow headers including Authorization
+		AllowCredentials: true,                                                         // Allow credentials
+	}
+
 	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery())
+	router.Use(gin.Logger(), gin.Recovery(), cors.New(corsConfig))
 
 	routes.SetupRoutes(router, h)
 

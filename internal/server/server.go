@@ -2,12 +2,14 @@ package main
 
 import (
 	"github.com/getz-devs/librakeeper-server/internal/server/handlers"
-	"github.com/getz-devs/librakeeper-server/internal/server/middlewares"
 	"github.com/getz-devs/librakeeper-server/internal/server/services/auth"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"log"
 )
+
+// WARN: old code
+// TODO: move some code from cmd here
 
 func main() {
 	r := gin.Default()
@@ -29,8 +31,7 @@ func main() {
 	}
 
 	// Routes
-	r.POST("/login", handlers.LoginHandler)
-	r.GET("/demo", middlewares.AuthMiddleware(), handlers.DemoHandler)
+	r.POST("/health", handlers.HealthCheck)
 
 	err = r.Run(":8080") // TODO: read config
 	if err != nil {
