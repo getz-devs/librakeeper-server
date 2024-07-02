@@ -40,7 +40,6 @@ func (s *UserService) CreateUser(ctx context.Context, user *models.User) (*model
 			return nil, ErrUserAlreadyExists
 		}
 
-		s.log.Error("failed to create user", slog.Any("error", err))
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 

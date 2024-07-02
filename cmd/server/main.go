@@ -8,6 +8,7 @@ import (
 	"github.com/getz-devs/librakeeper-server/internal/server/handlers"
 	"github.com/getz-devs/librakeeper-server/internal/server/routes"
 	"github.com/getz-devs/librakeeper-server/internal/server/services"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/auth"
 	"github.com/getz-devs/librakeeper-server/internal/server/services/storage"
 	"github.com/getz-devs/librakeeper-server/lib/prettylog"
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,12 @@ func main() {
 
 	log := setupLogger(cfg.Env)
 	log.Info("starting librakeeper server", slog.String("env", cfg.Env), slog.Int("port", cfg.Server.Port))
+
+	err := auth.InitializeFirebase(cfg.FirebaseConfigPath)
+	if err != nil {
+		log.Error("failed to initialize Firebase", slog.Any("error", err))
+		// TODO: Handle the error appropriately (e.g., panic or graceful shutdown)
+	}
 
 	_, collections := storage.Initialize(cfg, log)
 

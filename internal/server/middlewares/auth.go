@@ -29,7 +29,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Verify the ID token
 		token, err := auth.VerifyIDToken(context.Background(), idToken)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "message": err.Error()})
 			c.Abort()
 			return
 		}

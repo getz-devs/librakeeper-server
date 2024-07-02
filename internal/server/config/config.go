@@ -10,10 +10,11 @@ import (
 
 // Config represents the application's configuration.
 type Config struct {
-	Env      string `yaml:"env" env-default:"local"`
-	MongoURI string `yaml:"mongo_uri" env-required:"true"`
-	Database string `yaml:"database" env-required:"true"`
-	Server   struct {
+	Env                string `yaml:"env" env-default:"local"`
+	MongoURI           string `yaml:"mongo_uri" env-required:"true"`
+	FirebaseConfigPath string `yaml:"firebase_config" env-required:"true"`
+	Database           string `yaml:"database" env-required:"true"`
+	Server             struct {
 		Port int `yaml:"port" env-default:"8080"`
 	} `yaml:"server"`
 }
@@ -46,6 +47,10 @@ func fetchConfigPath() string {
 
 	if configPath == "" {
 		configPath = os.Getenv("CONFIG_PATH")
+	}
+
+	if configPath == "" {
+		panic("no config file path provided")
 	}
 
 	return configPath
