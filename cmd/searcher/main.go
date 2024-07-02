@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/getz-devs/librakeeper-server/internal/searcher/app"
 	"github.com/getz-devs/librakeeper-server/internal/searcher/config"
+	"github.com/getz-devs/librakeeper-server/internal/searcher/rabbitProvider"
 	mongostorage "github.com/getz-devs/librakeeper-server/internal/searcher/storage/mongo"
 	"github.com/getz-devs/librakeeper-server/lib/prettylog"
 	"log/slog"
@@ -28,8 +29,13 @@ func main() {
 		Collection: cfg.DatabaseMongo.CollectionName,
 	}
 
+	rabbitConfig := rabbitProvider.RabbitConfig{
+		RabbitUrl: cfg.Rabbit.URL,
+		QueueName: cfg.Rabbit.QueueName,
+	}
+
 	// --------------------------- Start Application server -----------------------
-	application := app.New(log, cfg.GRPC.Port, databaseMongoConfig)
+	application := app.New(log, cfg.GRPC.Port, databaseMongoConfig, rabbitConfig)
 	go application.GRPCSrv.MustRun()
 
 	// --------------------------- Register stop signal ---------------------------

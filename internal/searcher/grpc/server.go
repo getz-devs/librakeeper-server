@@ -3,7 +3,7 @@ package searcher
 import (
 	"context"
 	searcherv1 "github.com/getz-devs/librakeeper-protos/gen/go/searcher"
-	searcher_service "github.com/getz-devs/librakeeper-server/internal/searcher/services/searcher"
+	searcherservice "github.com/getz-devs/librakeeper-server/internal/searcher/services/searcher"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -12,11 +12,11 @@ import (
 
 type serverAPI struct {
 	searcherv1.UnimplementedSearcherServer
-	searcherService *searcher_service.SearcherService
+	searcherService *searcherservice.SearcherService
 	log             *slog.Logger
 }
 
-func Register(gRPC *grpc.Server, searcherService *searcher_service.SearcherService, log *slog.Logger) {
+func Register(gRPC *grpc.Server, searcherService *searcherservice.SearcherService, log *slog.Logger) {
 	searcherv1.RegisterSearcherServer(gRPC, &serverAPI{searcherService: searcherService, log: log})
 }
 

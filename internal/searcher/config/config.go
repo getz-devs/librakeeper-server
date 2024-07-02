@@ -15,6 +15,8 @@ type Config struct {
 	GRPC GRPCConfig `yaml:"grpc"`
 
 	DatabaseMongo DatabaseMongoConfig `yaml:"database_mongo"`
+
+	Rabbit RabbitConfig `yaml:"rabbit"`
 }
 
 type GRPCConfig struct {
@@ -26,6 +28,11 @@ type DatabaseMongoConfig struct {
 	ConnectURL     string `yaml:"connect_url" env-required:"true"`
 	DatabaseName   string `yaml:"database_name" env-required:"true"`
 	CollectionName string `yaml:"collection_name_books" env-required:"true"`
+}
+
+type RabbitConfig struct {
+	URL       string `yaml:"url" env-required:"true"`
+	QueueName string `yaml:"queue_name" env-required:"true"`
 }
 
 func MustLoad() *Config {

@@ -2,6 +2,7 @@ package app
 
 import (
 	grpcapp "github.com/getz-devs/librakeeper-server/internal/searcher/app/grpc"
+	"github.com/getz-devs/librakeeper-server/internal/searcher/rabbitProvider"
 	"github.com/getz-devs/librakeeper-server/internal/searcher/services/searcher"
 	mongostorage "github.com/getz-devs/librakeeper-server/internal/searcher/storage/mongo"
 	"log/slog"
@@ -16,9 +17,11 @@ func New(
 	log *slog.Logger,
 	grpcPort int,
 	databaseMongoConfig mongostorage.DatabaseMongoConfig,
+	rabbitConfig rabbitProvider.RabbitConfig,
 ) *App {
 	storage := mongostorage.New(databaseMongoConfig)
-	searcherService := searcher_service.New(log, storage)
+	rabbit := rabbitProvider.New(rabbitConfig, log)
+	searcherService := searcher_service.New(log, storage, rabbit)
 	grpcApp := grpcapp.New(log, searcherService, grpcPort)
 
 	return &App{

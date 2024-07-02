@@ -2,6 +2,7 @@ package app_rabbit
 
 import (
 	"fmt"
+	"github.com/getz-devs/librakeeper-server/internal/searcher-agent/rabbit"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log/slog"
 )
@@ -73,19 +74,16 @@ func (r *RabbitApp) Run() error {
 	for d := range r.msgs {
 		logger := r.log.With(slog.String("messageID", d.MessageId))
 		logger.Info("Received a message")
-		if err := processMessage(d, logger); err != nil {
+		if err := rabbit.Handler(d, logger); err != nil {
+
+			logger.Error("Failed to parse message", err)
+			err := d.Nack(false, false)
+			if err != nil {
+				log.Error("Failed to nack message", err)
+			}
 			return err
 		}
 	}
-	return nil
-}
-
-func processMessage(d amqp.Delivery, log *slog.Logger) error {
-	const op = "rabbitmq.processMessage"
-	log = log.With(slog.String("op", op))
-	log.Info("Processing message",
-		slog.String("messageID", d.MessageId),
-		slog.Any("body", d.Body))
 	return nil
 }
 
