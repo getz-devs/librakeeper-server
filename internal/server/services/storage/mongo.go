@@ -28,28 +28,20 @@ func Initialize(cfg *config.Config, log *slog.Logger) (*mongo.Database, Collecti
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.MongoURI))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.Database.URI))
 	if err != nil {
 		_log.Error("failed to connect to mongodb", slog.Any("error", err))
 		panic(err)
 	}
 
-	_db = client.Database(cfg.Database)
-	_log.Info("connected to mongodb", slog.String("database", cfg.Database))
+	_db = client.Database(cfg.Database.Name)
+	_log.Info("connected to mongodb", slog.String("database", cfg.Database.Name))
 
 	_collections.UsersCollection = _db.Collection("users")
 	_collections.BooksCollection = _db.Collection("books")
 	_collections.BookshelvesCollection = _db.Collection("bookshelves")
 
 	return _db, _collections
-}
-
-func GetCollection(name string) *mongo.Collection {
-	if _db == nil {
-		panic(fmt.Errorf("mongodb has not been initialized"))
-	}
-
-	return _db.Collection(name)
 }
 
 // Ping checks the database connectivity.

@@ -1,0 +1,11 @@
+server:
+  allowed_origins:
+    - https://libra.example.com
+    - http://localhost:3000
+
+database:
+  uri: mongodb://user:pass@cool.cloud.com:1234
+  name: database_name
+
+auth:
+  config_path: firebase.json

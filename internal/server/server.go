@@ -40,7 +40,7 @@ func NewServer(config *config.Config, log *slog.Logger) *Server {
 // Initialize initializes the server components.
 func (s *Server) Initialize() error {
 	// Initialize Firebase
-	err := auth.InitializeFirebase(s.config.FirebaseConfigPath)
+	err := auth.InitializeFirebase(s.config.Auth.ConfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to initialize Firebase: %w", err)
 	}

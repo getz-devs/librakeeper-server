@@ -10,14 +10,21 @@ import (
 
 // Config represents the application's configuration.
 type Config struct {
-	Env                string `yaml:"env" env-default:"local"`
-	MongoURI           string `yaml:"mongo_uri" env-required:"true"`
-	FirebaseConfigPath string `yaml:"firebase_config" env-required:"true"`
-	Database           string `yaml:"database" env-required:"true"`
-	Server             struct {
+	Env string `yaml:"env" env-default:"local"`
+
+	Server struct {
 		Port           int      `yaml:"port" env-default:"8080"`
 		AllowedOrigins []string `yaml:"allowed_origins"`
 	} `yaml:"server"`
+
+	Database struct {
+		URI  string `yaml:"uri" env-required:"true"`
+		Name string `yaml:"name" env-required:"true"`
+	} `yaml:"database"`
+
+	Auth struct {
+		ConfigPath string `yaml:"config_path" env-required:"true"`
+	} `yaml:"auth"`
 }
 
 // MustLoad loads the configuration from the specified path and environment variables.
