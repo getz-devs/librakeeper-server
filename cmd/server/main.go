@@ -11,7 +11,7 @@ import (
 func main() {
 	cfg := config.MustLoad()
 
-	log := setupLogger(cfg.Env)
+	log := prettylog.SetupLogger(cfg.Env)
 	log.Info("starting librakeeper srv", slog.String("env", cfg.Env), slog.Int("port", cfg.Server.Port))
 
 	// Create and initialize the srv
@@ -26,23 +26,4 @@ func main() {
 		log.Error("failed to run srv", slog.Any("error", err))
 		os.Exit(1)
 	}
-}
-
-func setupLogger(env string) *slog.Logger {
-	var log *slog.Logger
-
-	switch env {
-	case "local":
-		log = slog.New(prettylog.NewHandler(&slog.HandlerOptions{
-			Level:       slog.LevelDebug,
-			AddSource:   false,
-			ReplaceAttr: nil,
-		}))
-	case "development":
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	case "production":
-		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	}
-
-	return log
 }
