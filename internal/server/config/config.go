@@ -15,7 +15,8 @@ type Config struct {
 	FirebaseConfigPath string `yaml:"firebase_config" env-required:"true"`
 	Database           string `yaml:"database" env-required:"true"`
 	Server             struct {
-		Port int `yaml:"port" env-default:"8080"`
+		Port           int      `yaml:"port" env-default:"8080"`
+		AllowedOrigins []string `yaml:"allowed_origins"`
 	} `yaml:"server"`
 }
 
