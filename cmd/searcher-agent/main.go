@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/getz-devs/librakeeper-server/internal/searcher-agent/app"
 	"github.com/getz-devs/librakeeper-server/internal/searcher-agent/config"
+	mongostorage "github.com/getz-devs/librakeeper-server/internal/searcher-agent/storage/mongo"
 	"github.com/getz-devs/librakeeper-server/lib/prettylog"
 	"log/slog"
 	"os"
@@ -27,7 +28,13 @@ func main() {
 		slog.Any("config", cfg),
 	)
 
-	application := app.New(cfg.ConnectUrl, cfg.QueueName, log)
+	databaseMongoConfig := mongostorage.DatabaseMongoConfig{
+		ConnectUrl: cfg.DatabaseMongo.ConnectURL,
+		Database:   cfg.DatabaseMongo.DatabaseName,
+		Collection: cfg.DatabaseMongo.CollectionName,
+	}
+
+	application := app.New(cfg.ConnectUrl, cfg.QueueName, databaseMongoConfig, log)
 	go application.AppRabbit.MustRun()
 
 	// --------------------------- Register stop signal ---------------------------
@@ -42,6 +49,7 @@ func main() {
 	)
 
 	application.AppRabbit.Close()
+	application.Storage.Close()
 
 	//application.
 

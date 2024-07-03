@@ -11,6 +11,14 @@ type Config struct {
 
 	QueueName  string `yaml:"queue_name" env:"QUEUE_NAME" env-default:"searcher"`
 	ConnectUrl string `yaml:"connect_url" env:"CONNECT_URL" env-required:"true"`
+
+	DatabaseMongo DatabaseMongoConfig `yaml:"database_mongo"`
+}
+
+type DatabaseMongoConfig struct {
+	ConnectURL     string `yaml:"connect_url" env-required:"true"`
+	DatabaseName   string `yaml:"database_name" env-required:"true"`
+	CollectionName string `yaml:"collection_name_books" env-required:"true"`
 }
 
 func MustLoad() *Config {
@@ -44,10 +52,5 @@ func fetchConfigPath() string {
 	if res == "" {
 		res = os.Getenv("CONFIG_PATH")
 	}
-
-	//if res == "" {
-	//	res = "config.yml"
-	//}
-
 	return res
 }

@@ -1,6 +1,7 @@
 package app_rabbit
 
 import (
+	"context"
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/searcher-agent/rabbit"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -12,6 +13,7 @@ type RabbitApp struct {
 	channel    *amqp.Channel
 	msgs       <-chan amqp.Delivery
 	log        *slog.Logger
+	handler    *rabbit.Handler
 }
 
 // const rabbitUrl = "amqp://guest:guest@localhost:5672/"
@@ -22,7 +24,7 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func New(rabbitUrl string, queueName string, log *slog.Logger) *RabbitApp {
+func New(rabbitUrl string, queueName string, log *slog.Logger, requestStorage rabbit.RequestStorage) *RabbitApp {
 	const op = "rabbitmq.RabbitApp.New"
 	log = log.With(slog.String("op", op))
 
@@ -54,11 +56,17 @@ func New(rabbitUrl string, queueName string, log *slog.Logger) *RabbitApp {
 	log = log.With("queue", q.Name)
 
 	log.Info("Connected to RabbitMQ")
+
+	// Handler create
+
+	handler := rabbit.New(log, requestStorage)
+
 	return &RabbitApp{
 		connection: conn,
 		channel:    ch,
 		log:        log,
 		msgs:       msgs,
+		handler:    handler,
 	}
 }
 
@@ -74,8 +82,8 @@ func (r *RabbitApp) Run() error {
 	for d := range r.msgs {
 		logger := r.log.With(slog.String("messageID", d.MessageId))
 		logger.Info("Received a message")
-		if err := rabbit.Handler(d, logger); err != nil {
-
+		ctx := context.TODO()
+		if err := r.handler.Handle(ctx, d); err != nil {
 			logger.Error("Failed to parse message", err)
 			err := d.Nack(false, false)
 			if err != nil {

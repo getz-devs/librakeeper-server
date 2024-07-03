@@ -3,7 +3,7 @@ module github.com/getz-devs/librakeeper-server
 go 1.22
 
 require (
-	github.com/getz-devs/librakeeper-protos v0.0.2
+	github.com/getz-devs/librakeeper-protos v0.0.3
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	go.mongodb.org/mongo-driver v1.8.3

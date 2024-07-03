@@ -57,3 +57,26 @@ func (s *Storage) FindOrCreateRequest(ctx context.Context, isbn string) (bookMod
 	}
 	return result, false, nil
 }
+
+func (s *Storage) CompleteRequest(ctx context.Context, isbn string, books []*bookModels.BookInShop) error {
+	filter := bson.D{{"isbn", isbn}}
+	values := bson.D{{"$set", bson.D{
+		{"books", books},
+		{"status", bookModels.Success},
+	}}}
+	if _, err := s.col.UpdateOne(ctx, filter, values); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Storage) RejectRequest(ctx context.Context, isbn string) error {
+	filter := bson.D{{"isbn", isbn}}
+	values := bson.D{{"$set", bson.D{
+		{"status", bookModels.Failed},
+	}}}
+	if _, err := s.col.UpdateOne(ctx, filter, values); err != nil {
+		return err
+	}
+	return nil
+}

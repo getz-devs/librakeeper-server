@@ -18,6 +18,8 @@ github.com/getz-devs/librakeeper-protos v0.0.1 h1:2iWkQEV2AwCyZJDGlFObYWGHAD+6GT
 github.com/getz-devs/librakeeper-protos v0.0.1/go.mod h1:WJD3/q0XfM1zEktjnClClyki3zTms5+uhghADvE8X4Q=
 github.com/getz-devs/librakeeper-protos v0.0.2 h1:NbFBVwR5nx1b5BIxx5epKNePEdMcn5CBUN6kF1bgAa0=
 github.com/getz-devs/librakeeper-protos v0.0.2/go.mod h1:WJD3/q0XfM1zEktjnClClyki3zTms5+uhghADvE8X4Q=
+github.com/getz-devs/librakeeper-protos v0.0.3 h1:HUOqfHA/UVNL6EnDOVUeCMniZWY1z4pCW4RCBnFPdlU=
+github.com/getz-devs/librakeeper-protos v0.0.3/go.mod h1:WJD3/q0XfM1zEktjnClClyki3zTms5+uhghADvE8X4Q=
 github.com/go-stack/stack v1.8.0 h1:5SgMzNM5HxrEjV0ww2lTmX6E2Izsfxas4+YHWRs3Lsk=
 github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
 github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=
