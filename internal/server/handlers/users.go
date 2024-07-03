@@ -3,18 +3,18 @@ package handlers
 import (
 	"errors"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
-	"github.com/getz-devs/librakeeper-server/internal/server/services"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/users"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 )
 
 type UserHandlers struct {
-	service *services.UserService
+	service *users.UserService
 	log     *slog.Logger
 }
 
-func NewUserHandlers(service *services.UserService, log *slog.Logger) *UserHandlers {
+func NewUserHandlers(service *users.UserService, log *slog.Logger) *UserHandlers {
 	return &UserHandlers{
 		service: service,
 		log:     log,
@@ -39,7 +39,7 @@ func (h *UserHandlers) CreateUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	createdUser, err := h.service.CreateUser(ctx, &user)
 	if err != nil {
-		if errors.Is(err, services.ErrUserAlreadyExists) {
+		if errors.Is(err, users.ErrUserAlreadyExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
@@ -57,7 +57,7 @@ func (h *UserHandlers) GetUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	user, err := h.service.GetUserByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, services.ErrUserNotFound) {
+		if errors.Is(err, users.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -81,7 +81,7 @@ func (h *UserHandlers) UpdateUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	err := h.service.UpdateUser(ctx, userID, update.ToMap())
 	if err != nil {
-		if errors.Is(err, services.ErrUserNotFound) {
+		if errors.Is(err, users.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -99,7 +99,7 @@ func (h *UserHandlers) DeleteUser(c *gin.Context) {
 	ctx := c.Request.Context()
 	err := h.service.DeleteUser(ctx, userID)
 	if err != nil {
-		if errors.Is(err, services.ErrUserNotFound) {
+		if errors.Is(err, users.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}

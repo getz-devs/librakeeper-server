@@ -1,4 +1,4 @@
-package services
+package bookshelves
 
 import (
 	"context"

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
-	"github.com/getz-devs/librakeeper-server/internal/server/services"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/bookshelves"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log/slog"
@@ -13,11 +13,11 @@ import (
 )
 
 type BookshelfHandlers struct {
-	service *services.BookshelfService
+	service *bookshelves.BookshelfService
 	log     *slog.Logger
 }
 
-func NewBookshelfHandlers(service *services.BookshelfService, log *slog.Logger) *BookshelfHandlers {
+func NewBookshelfHandlers(service *bookshelves.BookshelfService, log *slog.Logger) *BookshelfHandlers {
 	return &BookshelfHandlers{
 		service: service,
 		log:     log,
@@ -61,7 +61,7 @@ func (h *BookshelfHandlers) GetBookshelf(c *gin.Context) {
 	ctx := c.Request.Context()
 	bookshelf, err := h.service.GetBookshelf(ctx, bookshelfID)
 	if err != nil {
-		if errors.Is(err, services.ErrBookshelfNotFound) {
+		if errors.Is(err, bookshelves.ErrBookshelfNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -102,14 +102,14 @@ func (h *BookshelfHandlers) GetBookshelvesByUserID(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	bookshelves, err := h.service.GetBookshelvesByUserID(ctx, userID, page, limit)
+	result, err := h.service.GetBookshelvesByUserID(ctx, userID, page, limit)
 	if err != nil {
-		h.log.Error("failed to get bookshelves by user id", slog.Any("error", err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bookshelves by user ID"})
+		h.log.Error("failed to get result by user id", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get result by user ID"})
 		return
 	}
 
-	c.JSON(http.StatusOK, bookshelves)
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *BookshelfHandlers) UpdateBookshelf(c *gin.Context) {
@@ -130,7 +130,7 @@ func (h *BookshelfHandlers) UpdateBookshelf(c *gin.Context) {
 	ctx := c.Request.Context()
 	err = h.service.UpdateBookshelf(ctx, bookshelfID, update.ToMap())
 	if err != nil {
-		if errors.Is(err, services.ErrBookshelfNotFound) {
+		if errors.Is(err, bookshelves.ErrBookshelfNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -154,7 +154,7 @@ func (h *BookshelfHandlers) DeleteBookshelf(c *gin.Context) {
 	ctx := c.Request.Context()
 	err = h.service.DeleteBookshelf(ctx, bookshelfID)
 	if err != nil {
-		if errors.Is(err, services.ErrBookshelfNotFound) {
+		if errors.Is(err, bookshelves.ErrBookshelfNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}

@@ -3,7 +3,7 @@ package handlers
 import (
 	"errors"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
-	"github.com/getz-devs/librakeeper-server/internal/server/services"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/books"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log/slog"
@@ -12,11 +12,11 @@ import (
 )
 
 type BookHandlers struct {
-	service *services.BookService
+	service *books.BookService
 	log     *slog.Logger
 }
 
-func NewBookHandlers(service *services.BookService, log *slog.Logger) *BookHandlers {
+func NewBookHandlers(service *books.BookService, log *slog.Logger) *BookHandlers {
 	return &BookHandlers{
 		service: service,
 		log:     log,
@@ -53,7 +53,7 @@ func (h *BookHandlers) GetBook(c *gin.Context) {
 	ctx := c.Request.Context()
 	book, err := h.service.GetBook(ctx, bookID)
 	if err != nil {
-		if errors.Is(err, services.ErrBookNotFound) {
+		if errors.Is(err, books.ErrBookNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -82,14 +82,14 @@ func (h *BookHandlers) GetBooks(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	books, err := h.service.GetBooks(ctx, page, limit)
+	result, err := h.service.GetBooks(ctx, page, limit)
 	if err != nil {
-		h.log.Error("failed to get books", slog.Any("error", err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get books"})
+		h.log.Error("failed to get result", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get result"})
 		return
 	}
 
-	c.JSON(http.StatusOK, books)
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *BookHandlers) GetBooksByBookshelfID(c *gin.Context) {
@@ -117,14 +117,14 @@ func (h *BookHandlers) GetBooksByBookshelfID(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	books, err := h.service.GetBooksByBookshelfID(ctx, bookshelfID, page, limit)
+	result, err := h.service.GetBooksByBookshelfID(ctx, bookshelfID, page, limit)
 	if err != nil {
-		h.log.Error("failed to get books by bookshelf id", slog.Any("error", err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get books by bookshelf ID"})
+		h.log.Error("failed to get result by bookshelf id", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get result by bookshelf ID"})
 		return
 	}
 
-	c.JSON(http.StatusOK, books)
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *BookHandlers) UpdateBook(c *gin.Context) {
@@ -145,7 +145,7 @@ func (h *BookHandlers) UpdateBook(c *gin.Context) {
 	ctx := c.Request.Context()
 	err = h.service.UpdateBook(ctx, bookID, update.ToMap())
 	if err != nil {
-		if errors.Is(err, services.ErrBookNotFound) {
+		if errors.Is(err, books.ErrBookNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -169,7 +169,7 @@ func (h *BookHandlers) DeleteBook(c *gin.Context) {
 	ctx := c.Request.Context()
 	err = h.service.DeleteBook(ctx, bookID)
 	if err != nil {
-		if errors.Is(err, services.ErrBookNotFound) {
+		if errors.Is(err, books.ErrBookNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
