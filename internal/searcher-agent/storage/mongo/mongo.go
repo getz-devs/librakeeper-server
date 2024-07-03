@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"time"
 )
 
 type Storage struct {
@@ -63,6 +64,7 @@ func (s *Storage) CompleteRequest(ctx context.Context, isbn string, books []*boo
 	values := bson.D{{"$set", bson.D{
 		{"books", books},
 		{"status", bookModels.Success},
+		{"updated_at", time.Now()},
 	}}}
 	if _, err := s.col.UpdateOne(ctx, filter, values); err != nil {
 		return err
@@ -74,6 +76,7 @@ func (s *Storage) RejectRequest(ctx context.Context, isbn string) error {
 	filter := bson.D{{"isbn", isbn}}
 	values := bson.D{{"$set", bson.D{
 		{"status", bookModels.Failed},
+		{"updated_at", time.Now()},
 	}}}
 	if _, err := s.col.UpdateOne(ctx, filter, values); err != nil {
 		return err
