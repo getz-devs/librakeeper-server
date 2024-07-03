@@ -1,0 +1,15 @@
+env: "local"
+
+storage_path: "./storage/sso.db"
+grpc:
+    port: 44044
+    timeout: 10h
+
+database_mongo:
+    connect_url: "mongodb://192.168.1.199:27017/"
+    database_name: "TempData"
+    collection_name_books: "books"
+
+rabbit:
+    url: "amqp://guest:guest@192.168.1.161:5672/"
+    queue_name: "searcher"

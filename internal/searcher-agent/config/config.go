@@ -4,35 +4,21 @@ import (
 	"flag"
 	"github.com/ilyakaznacheev/cleanenv"
 	"os"
-	"time"
 )
 
 type Config struct {
 	Env string `yaml:"env" env-default:"local"`
 
-	StoragePath string `yaml:"storage_path" env-required:"true"`
-
-	GRPC GRPCConfig `yaml:"grpc"`
+	QueueName  string `yaml:"queue_name" env:"QUEUE_NAME" env-default:"searcher"`
+	ConnectUrl string `yaml:"connect_url" env:"CONNECT_URL" env-required:"true"`
 
 	DatabaseMongo DatabaseMongoConfig `yaml:"database_mongo"`
-
-	Rabbit RabbitConfig `yaml:"rabbit"`
-}
-
-type GRPCConfig struct {
-	Port    int           `yaml:"port" env-default:"44044"`
-	Timeout time.Duration `yaml:"timeout" env-default:"10h"`
 }
 
 type DatabaseMongoConfig struct {
 	ConnectURL     string `yaml:"connect_url" env-required:"true"`
 	DatabaseName   string `yaml:"database_name" env-required:"true"`
 	CollectionName string `yaml:"collection_name_books" env-required:"true"`
-}
-
-type RabbitConfig struct {
-	URL       string `yaml:"url" env-required:"true"`
-	QueueName string `yaml:"queue_name" env-required:"true"`
 }
 
 func MustLoad() *Config {
@@ -66,10 +52,5 @@ func fetchConfigPath() string {
 	if res == "" {
 		res = os.Getenv("CONFIG_PATH")
 	}
-
-	//if res == "" {
-	//	res = "config.yml"
-	//}
-
 	return res
 }
