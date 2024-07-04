@@ -23,3 +23,8 @@ func (b *Bookshelf) ToMap() bson.M {
 		"updated_at": b.UpdatedAt,
 	}
 }
+
+// BookshelfUpdate represents fields that can be updated in a Bookshelf.
+type BookshelfUpdate struct {
+	Name *string `bson:"name,omitempty" json:"name,omitempty"` // Optional field for update
+}

@@ -20,3 +20,8 @@ func (u *User) ToMap() bson.M {
 		"updated_at":   u.UpdatedAt,
 	}
 }
+
+// UserUpdate represents fields that can be updated in a User.
+type UserUpdate struct {
+	DisplayName *string `bson:"display_name,omitempty" json:"display_name,omitempty"` // Optional field for update
+}

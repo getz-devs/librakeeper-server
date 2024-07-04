@@ -31,3 +31,12 @@ func (b *Book) ToMap() bson.M {
 		"updated_at":   b.UpdatedAt,
 	}
 }
+
+// BookUpdate represents fields that can be updated in a Book.
+type BookUpdate struct {
+	Title       *string `bson:"title,omitempty" json:"title,omitempty"` // Optional fields for update
+	Author      *string `bson:"author,omitempty" json:"author,omitempty"`
+	ISBN        *string `bson:"isbn,omitempty" json:"isbn,omitempty"`
+	Description *string `bson:"description,omitempty" json:"description,omitempty"`
+	CoverImage  *string `bson:"cover_image,omitempty" json:"cover_image,omitempty"`
+}
