@@ -1,0 +1,14 @@
+env: "local"
+
+server:
+  port: 8080
+  allowed_origins:
+    - https://*
+    - http://*
+
+database:
+  uri: mongodb://mongo:27017
+  name: docker_server
+
+auth:
+  config_path: /config/secret.json

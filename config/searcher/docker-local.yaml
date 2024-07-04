@@ -1,0 +1,13 @@
+env: "local"
+
+grpc:
+  port: 8081
+
+database_mongo:
+  connect_url: "mongodb://mongodb/"
+  database_name: "docker_searcher"
+  collection_name_books: "books"
+
+rabbit:
+  url: "amqp://test:test@rabbitmq/"
+  queue_name: "searcher"
