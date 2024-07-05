@@ -2,10 +2,23 @@ package books
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
 	"github.com/getz-devs/librakeeper-server/internal/server/repository"
+	"github.com/getz-devs/librakeeper-server/internal/server/storage/mongo"
 	"log/slog"
+)
+
+// Custom Error Types:
+var (
+	ErrBookNotFound           = errors.New("book not found")
+	ErrBookshelfNotFound      = errors.New("bookshelf not found")
+	ErrUserNotFoundInContext  = errors.New("userID not found in context")
+	ErrNotAuthorized          = errors.New("user is not authorized to perform this action")
+	ErrTitleAndAuthorRequired = errors.New("book title and author are required")
+	ErrBookshelfLimitReached  = errors.New("bookshelf has reached the book limit")
+	ErrBookAlreadyExists      = errors.New("book with this ISBN already exists in this bookshelf")
 )
 
 // BookService defines the interface for book service operations.
@@ -13,7 +26,7 @@ type BookService struct {
 	repo          repository.BookRepo
 	bookshelfRepo repository.BookshelfRepo
 	log           *slog.Logger
-	bookLimit     int // Limit for books per bookshelf
+	bookLimit     int
 }
 
 // NewBookService creates a new BookService instance.
@@ -22,7 +35,7 @@ func NewBookService(repo repository.BookRepo, bookshelfRepo repository.Bookshelf
 		repo:          repo,
 		bookshelfRepo: bookshelfRepo,
 		log:           log,
-		bookLimit:     1000, // Hardcoded for now, TODO: read from config
+		bookLimit:     1000, // TODO: Read from config
 	}
 }
 
@@ -30,43 +43,49 @@ func NewBookService(repo repository.BookRepo, bookshelfRepo repository.Bookshelf
 func (s *BookService) Create(ctx context.Context, book *models.Book) error {
 	// Rule 2: Book Title & Author Presence
 	if book.Title == "" || book.Author == "" {
-		return fmt.Errorf("book title and author are required")
+		return ErrTitleAndAuthorRequired
 	}
 
 	// Rule 3: Bookshelf Ownership
 	userID, ok := ctx.Value("userID").(string)
 	if !ok {
-		return fmt.Errorf("userID not found in context")
+		return ErrUserNotFoundInContext
 	}
 
 	bookshelf, err := s.bookshelfRepo.GetByID(ctx, book.BookshelfID)
 	if err != nil {
+		if errors.Is(err, mongo.ErrBookshelfNotFound) {
+			return ErrBookshelfNotFound
+		}
 		return fmt.Errorf("failed to get bookshelf: %w", err)
 	}
+
 	if bookshelf.UserID != userID {
-		return fmt.Errorf("user is not authorized to add a book to this bookshelf")
+		return ErrNotAuthorized
 	}
 
-	// TODO: optimize
 	// Rule 4: Book Limit per Bookshelf
-	books, err := s.repo.GetByBookshelfID(ctx, book.BookshelfID, 1, int64(s.bookLimit)) // Get up to the limit
+	bookCount, err := s.repo.CountInBookshelf(ctx, book.BookshelfID)
 	if err != nil {
-		return fmt.Errorf("failed to get books for bookshelf: %w", err)
+		return fmt.Errorf("failed to get book count for bookshelf: %w", err)
 	}
-	if len(books) >= s.bookLimit {
-		return fmt.Errorf("bookshelf has reached the book limit (%d)", s.bookLimit)
+	if bookCount >= s.bookLimit {
+		return ErrBookshelfLimitReached
 	}
 
 	// Rule 5: Unique Book within Bookshelf
-	for _, existingBook := range books {
-		if existingBook.ISBN == book.ISBN {
-			return fmt.Errorf("book with ISBN '%s' already exists in this bookshelf", book.ISBN)
-		}
+	exists, err := s.repo.ExistsInBookshelf(ctx, book.ISBN, book.BookshelfID)
+	if err != nil {
+		return fmt.Errorf("failed to check book existence: %w", err)
+	}
+	if exists {
+		return ErrBookAlreadyExists
 	}
 
 	if err := s.repo.Create(ctx, book); err != nil {
 		return fmt.Errorf("failed to create book: %w", err)
 	}
+
 	return nil
 }
 
@@ -74,6 +93,9 @@ func (s *BookService) Create(ctx context.Context, book *models.Book) error {
 func (s *BookService) GetByID(ctx context.Context, bookID string) (*models.Book, error) {
 	book, err := s.repo.GetByID(ctx, bookID)
 	if err != nil {
+		if errors.Is(err, mongo.ErrBookNotFound) {
+			return nil, ErrBookNotFound
+		}
 		return nil, fmt.Errorf("failed to get book: %w", err)
 	}
 	return book, nil
@@ -102,24 +124,30 @@ func (s *BookService) Update(ctx context.Context, bookID string, update *models.
 	// 1. Get the book
 	book, err := s.repo.GetByID(ctx, bookID)
 	if err != nil {
+		if errors.Is(err, mongo.ErrBookNotFound) {
+			return ErrBookNotFound
+		}
 		return fmt.Errorf("failed to get book: %w", err)
 	}
 
 	// 2. Get the bookshelf
 	bookshelf, err := s.bookshelfRepo.GetByID(ctx, book.BookshelfID)
 	if err != nil {
+		if errors.Is(err, mongo.ErrBookshelfNotFound) {
+			return ErrBookshelfNotFound
+		}
 		return fmt.Errorf("failed to get bookshelf: %w", err)
 	}
 
 	// 3. Get userID from context
 	userID, ok := ctx.Value("userID").(string)
 	if !ok {
-		return fmt.Errorf("userID not found in context")
+		return ErrUserNotFoundInContext
 	}
 
 	// 4. Check bookshelf ownership
 	if bookshelf.UserID != userID {
-		return fmt.Errorf("user is not authorized to modify this book")
+		return ErrNotAuthorized
 	}
 
 	// 5. If authorized, proceed with the update:
@@ -132,8 +160,39 @@ func (s *BookService) Update(ctx context.Context, bookID string, update *models.
 
 // Delete deletes a book.
 func (s *BookService) Delete(ctx context.Context, bookID string) error {
+	// 1. Get the book
+	book, err := s.repo.GetByID(ctx, bookID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrBookNotFound) {
+			return ErrBookNotFound
+		}
+		return fmt.Errorf("failed to get book: %w", err)
+	}
+
+	// 2. Get the bookshelf
+	bookshelf, err := s.bookshelfRepo.GetByID(ctx, book.BookshelfID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrBookshelfNotFound) {
+			return ErrBookshelfNotFound
+		}
+		return fmt.Errorf("failed to get bookshelf: %w", err)
+	}
+
+	// 3. Get userID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return ErrUserNotFoundInContext
+	}
+
+	// 4. Check bookshelf ownership
+	if bookshelf.UserID != userID {
+		return ErrNotAuthorized
+	}
+
+	// 5. If authorized, proceed to delete:
 	if err := s.repo.Delete(ctx, bookID); err != nil {
 		return fmt.Errorf("failed to delete book: %w", err)
 	}
+
 	return nil
 }

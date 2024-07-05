@@ -124,6 +124,38 @@ func (r *BookRepo) GetByBookshelfID(ctx context.Context, bookshelfID string, pag
 	return books, nil
 }
 
+// CountInBookshelf returns the number of books in a bookshelf.
+func (r *BookRepo) CountInBookshelf(ctx context.Context, bookshelfID string) (int, error) {
+	objectBookshelfID, err := primitive.ObjectIDFromHex(bookshelfID)
+	if err != nil {
+		return 0, fmt.Errorf("invalid bookshelf ID: %w", err)
+	}
+
+	count, err := r.collection.CountDocuments(ctx, bson.M{"bookshelf_id": objectBookshelfID})
+	if err != nil {
+		r.log.Error("failed to count books by bookshelf ID", slog.Any("error", err))
+		return 0, fmt.Errorf("failed to count books by bookshelf ID: %w", err)
+	}
+
+	return int(count), nil
+}
+
+// ExistsInBookshelf checks if a book with the given ISBN already exists in the bookshelf.
+func (r *BookRepo) ExistsInBookshelf(ctx context.Context, isbn, bookshelfID string) (bool, error) {
+	objectBookshelfID, err := primitive.ObjectIDFromHex(bookshelfID)
+	if err != nil {
+		return false, fmt.Errorf("invalid bookshelf ID: %w", err)
+	}
+
+	count, err := r.collection.CountDocuments(ctx, bson.M{"isbn": isbn, "bookshelf_id": objectBookshelfID})
+	if err != nil {
+		r.log.Error("failed to check book existence", slog.Any("error", err))
+		return false, fmt.Errorf("failed to check book existence: %w", err)
+	}
+
+	return count > 0, nil
+}
+
 // Update updates a book in the database.
 func (r *BookRepo) Update(ctx context.Context, id string, update *models.BookUpdate) error {
 	objectID, err := primitive.ObjectIDFromHex(id)
