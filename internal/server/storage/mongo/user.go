@@ -67,14 +67,8 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 
 // Update updates a user in the database.
 func (r *UserRepo) Update(ctx context.Context, id string, update *models.UserUpdate) error {
-	// Convert UserUpdate to bson.M
-	updateBson := bson.M{}
-	if update.DisplayName != nil {
-		updateBson["display_name"] = *update.DisplayName
-	}
-	updateBson["updated_at"] = time.Now()
-
-	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": updateBson})
+	update.UpdatedAt = time.Now()
+	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrUserNotFound

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
 	"time"
 )
 
@@ -13,15 +12,8 @@ type User struct {
 	UpdatedAt   time.Time `bson:"updated_at" json:"updated_at"`
 }
 
-func (u *User) ToMap() bson.M {
-	return bson.M{
-		"display_name": u.DisplayName,
-		"created_at":   u.CreatedAt,
-		"updated_at":   u.UpdatedAt,
-	}
-}
-
 // UserUpdate represents fields that can be updated in a User.
 type UserUpdate struct {
-	DisplayName *string `bson:"display_name,omitempty" json:"display_name,omitempty"` // Optional field for update
+	DisplayName *string   `bson:"display_name,omitempty" json:"display_name,omitempty"` // Optional field for update
+	UpdatedAt   time.Time `bson:"updated_at" json:"updated_at"`
 }

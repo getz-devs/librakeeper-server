@@ -131,18 +131,8 @@ func (r *BookRepo) Update(ctx context.Context, id string, update *models.BookUpd
 		return fmt.Errorf("invalid book ID: %w", err)
 	}
 
-	// Convert BookUpdate to bson.M
-	updateBson := bson.M{}
-	if update.Title != nil {
-		updateBson["title"] = *update.Title
-	}
-	if update.Author != nil {
-		updateBson["author"] = *update.Author
-	}
-	// ... similarly for other fields ...
-
-	updateBson["updated_at"] = time.Now()
-	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": updateBson})
+	update.UpdatedAt = time.Now()
+	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": update})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrBookNotFound

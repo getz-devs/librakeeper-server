@@ -107,14 +107,8 @@ func (r *BookshelfRepo) Update(ctx context.Context, id string, update *models.Bo
 		return fmt.Errorf("invalid bookshelf ID: %w", err)
 	}
 
-	// Convert BookshelfUpdate to bson.M
-	updateBson := bson.M{}
-	if update.Name != nil {
-		updateBson["name"] = *update.Name
-	}
-
-	updateBson["updated_at"] = time.Now()
-	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": updateBson})
+	update.UpdatedAt = time.Now()
+	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": update})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrBookshelfNotFound
