@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// AuthMiddleware is a Gin middleware for authenticating requests using Firebase
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -34,8 +35,10 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Set the UID in the context for further use
-		c.Set("uid", token.UID)
+		// Add the UID to the context for further use.
+		ctx := context.WithValue(c.Request.Context(), "userID", token.UID)
+		c.Request = c.Request.WithContext(ctx) // Update the request's context
+
 		c.Next()
 	}
 }
