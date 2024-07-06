@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/config"
 	"log/slog"
@@ -11,37 +12,23 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Collections struct {
-	UsersCollection       *mongo.Collection
-	BooksCollection       *mongo.Collection
-	BookshelvesCollection *mongo.Collection
-}
-
 var (
-	_log         *slog.Logger
-	_db          *mongo.Database
-	_collections Collections
+	_db *mongo.Database
 )
 
-func Initialize(cfg *config.Config, log *slog.Logger) (*mongo.Database, Collections) {
-	_log = log
+func Initialize(cfg *config.Config, log *slog.Logger) (*mongo.Database, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cfg.Database.URI))
 	if err != nil {
-		_log.Error("failed to connect to mongodb", slog.Any("error", err))
-		panic(err)
+		return nil, errors.New("failed to connect to mongodb")
 	}
 
 	_db = client.Database(cfg.Database.Name)
-	_log.Info("connected to mongodb", slog.String("database", cfg.Database.Name))
+	log.Info("connected to mongodb", slog.String("database", cfg.Database.Name))
 
-	_collections.UsersCollection = _db.Collection("users")
-	_collections.BooksCollection = _db.Collection("books")
-	_collections.BookshelvesCollection = _db.Collection("bookshelves")
-
-	return _db, _collections
+	return _db, nil
 }
 
 // Ping checks the database connectivity.
@@ -50,7 +37,7 @@ func Ping(ctx context.Context) error {
 	defer cancel()
 
 	if _db == nil {
-		panic(fmt.Errorf("mongodb has not been initialized"))
+		return errors.New("mongodb has not been initialized")
 	}
 
 	if err := _db.Client().Ping(ctx, nil); err != nil {

@@ -2,13 +2,14 @@ package middlewares
 
 import (
 	"context"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/auth"
+	"github.com/getz-devs/librakeeper-server/internal/server/auth"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
+// AuthMiddleware is a Gin middleware for authenticating requests using Firebase
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -35,7 +36,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Set the UID in the context for further use
-		c.Set("uid", token.UID)
+		c.Set("userID", token.UID)
 		c.Next()
 	}
 }
