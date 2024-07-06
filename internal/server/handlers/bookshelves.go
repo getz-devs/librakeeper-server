@@ -1,22 +1,24 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
 	"github.com/getz-devs/librakeeper-server/internal/server/services/bookshelves"
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log/slog"
 	"net/http"
 	"strconv"
 )
 
+// BookshelfHandlers handles HTTP requests related to bookshelves.
 type BookshelfHandlers struct {
 	service *bookshelves.BookshelfService
 	log     *slog.Logger
 }
 
+// NewBookshelfHandlers creates a new BookshelfHandlers instance.
 func NewBookshelfHandlers(service *bookshelves.BookshelfService, log *slog.Logger) *BookshelfHandlers {
 	return &BookshelfHandlers{
 		service: service,
@@ -24,8 +26,9 @@ func NewBookshelfHandlers(service *bookshelves.BookshelfService, log *slog.Logge
 	}
 }
 
-func (h *BookshelfHandlers) CreateBookshelf(c *gin.Context) {
-	userID, exists := c.Get("uid")
+// Create creates a new bookshelf.
+func (h *BookshelfHandlers) Create(c *gin.Context) {
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
@@ -37,29 +40,27 @@ func (h *BookshelfHandlers) CreateBookshelf(c *gin.Context) {
 		return
 	}
 
-	bookshelf.UserID = userID.(string) // Type assertion to string
-	ctx := c.Request.Context()
-	createdBookshelf, err := h.service.CreateBookshelf(ctx, &bookshelf)
-	if err != nil {
+	ctx := context.WithValue(c.Request.Context(), "userID", userID)
+	if err := h.service.Create(ctx, &bookshelf); err != nil {
+		if errors.Is(err, bookshelves.ErrNameRequired) || errors.Is(err, bookshelves.ErrBookshelfAlreadyExists) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
 		h.log.Error("failed to create bookshelf", slog.Any("error", err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create bookshelf"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, createdBookshelf)
+	c.JSON(http.StatusCreated, bookshelf)
 }
 
-func (h *BookshelfHandlers) GetBookshelf(c *gin.Context) {
-	bookshelfIDHex := c.Param("id")
-
-	bookshelfID, err := primitive.ObjectIDFromHex(bookshelfIDHex)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bookshelf ID"})
-		return
-	}
+// GetByID retrieves a bookshelf by ID.
+func (h *BookshelfHandlers) GetByID(c *gin.Context) {
+	bookshelfID := c.Param("id")
 
 	ctx := c.Request.Context()
-	bookshelf, err := h.service.GetBookshelf(ctx, bookshelfID)
+	bookshelf, err := h.service.GetByID(ctx, bookshelfID)
 	if err != nil {
 		if errors.Is(err, bookshelves.ErrBookshelfNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -73,16 +74,11 @@ func (h *BookshelfHandlers) GetBookshelf(c *gin.Context) {
 	c.JSON(http.StatusOK, bookshelf)
 }
 
-func (h *BookshelfHandlers) GetBookshelvesByUserID(c *gin.Context) {
-	userIDHex, exists := c.Get("uid")
+// GetByUser retrieves bookshelves for a user.
+func (h *BookshelfHandlers) GetByUser(c *gin.Context) {
+	userID, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	userID, err := primitive.ObjectIDFromHex(fmt.Sprintf("%v", userIDHex))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error parsing user id"})
 		return
 	}
 
@@ -102,39 +98,46 @@ func (h *BookshelfHandlers) GetBookshelvesByUserID(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
-	result, err := h.service.GetBookshelvesByUserID(ctx, userID, page, limit)
+	result, err := h.service.GetByUser(ctx, userID.(string), page, limit)
 	if err != nil {
 		h.log.Error("failed to get result by user id", slog.Any("error", err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get result by user ID"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bookshelves by user ID"})
 		return
 	}
 
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *BookshelfHandlers) UpdateBookshelf(c *gin.Context) {
-	bookshelfIDHex := c.Param("id")
+// Update updates a bookshelf.
+func (h *BookshelfHandlers) Update(c *gin.Context) {
+	bookshelfID := c.Param("id")
 
-	bookshelfID, err := primitive.ObjectIDFromHex(bookshelfIDHex)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bookshelf ID"})
-		return
-	}
-
-	var update models.Bookshelf
+	var update models.BookshelfUpdate
 	if err := c.BindJSON(&update); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx := c.Request.Context()
-	err = h.service.UpdateBookshelf(ctx, bookshelfID, update.ToMap())
-	if err != nil {
-		if errors.Is(err, bookshelves.ErrBookshelfNotFound) {
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	ctx := context.WithValue(c.Request.Context(), "userID", userID)
+
+	if err := h.service.Update(ctx, bookshelfID, &update); err != nil {
+		if errors.Is(err, bookshelves.ErrBookshelfNotFound) || errors.Is(err, bookshelves.ErrNotAuthorized) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		h.log.Error("failed to update bookshelf", slog.Any("error", err))
+
+		h.log.Error(
+			"failed to update bookshelf",
+			slog.Any("error", err),
+			slog.String("bookshelfID", bookshelfID),
+			slog.String("userID", fmt.Sprintf("%v", userID)),
+		)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update bookshelf"})
 		return
 	}
@@ -142,19 +145,20 @@ func (h *BookshelfHandlers) UpdateBookshelf(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Bookshelf updated successfully"})
 }
 
-func (h *BookshelfHandlers) DeleteBookshelf(c *gin.Context) {
-	bookshelfIDHex := c.Param("id")
+// Delete deletes a bookshelf.
+func (h *BookshelfHandlers) Delete(c *gin.Context) {
+	bookshelfID := c.Param("id")
 
-	bookshelfID, err := primitive.ObjectIDFromHex(bookshelfIDHex)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid bookshelf ID"})
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
-	ctx := c.Request.Context()
-	err = h.service.DeleteBookshelf(ctx, bookshelfID)
-	if err != nil {
-		if errors.Is(err, bookshelves.ErrBookshelfNotFound) {
+	ctx := context.WithValue(c.Request.Context(), "userID", userID)
+
+	if err := h.service.Delete(ctx, bookshelfID); err != nil {
+		if errors.Is(err, bookshelves.ErrBookshelfNotFound) || errors.Is(err, bookshelves.ErrNotAuthorized) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}

@@ -74,8 +74,8 @@ func (r *BookshelfRepo) GetByID(ctx context.Context, id string) (*models.Bookshe
 	return &bookshelf, nil
 }
 
-// GetByUserID retrieves bookshelves associated with a specific user ID.
-func (r *BookshelfRepo) GetByUserID(ctx context.Context, userID string, page int64, limit int64) ([]*models.Bookshelf, error) {
+// GetByUser retrieves bookshelves associated with a specific user ID.
+func (r *BookshelfRepo) GetByUser(ctx context.Context, userID string, page int64, limit int64) ([]*models.Bookshelf, error) {
 	objectUserID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID: %w", err)
@@ -98,6 +98,38 @@ func (r *BookshelfRepo) GetByUserID(ctx context.Context, userID string, page int
 	}
 
 	return bookshelves, nil
+}
+
+// CountByUser returns the number of bookshelves owned by a user.
+func (r *BookshelfRepo) CountByUser(ctx context.Context, userID string) (int, error) {
+	objectUserID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return 0, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	count, err := r.collection.CountDocuments(ctx, bson.M{"user_id": objectUserID})
+	if err != nil {
+		r.log.Error("failed to count bookshelves by user ID", slog.Any("error", err))
+		return 0, fmt.Errorf("failed to count bookshelves by user ID: %w", err)
+	}
+
+	return int(count), nil
+}
+
+// ExistsByNameAndUser checks if a bookshelf with the given name already exists for a user.
+func (r *BookshelfRepo) ExistsByNameAndUser(ctx context.Context, name, userID string) (bool, error) {
+	objectUserID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return false, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	count, err := r.collection.CountDocuments(ctx, bson.M{"name": name, "user_id": objectUserID})
+	if err != nil {
+		r.log.Error("failed to check bookshelf existence by name and user", slog.Any("error", err))
+		return false, fmt.Errorf("failed to check bookshelf existence by name and user: %w", err)
+	}
+
+	return count > 0, nil
 }
 
 // Update updates a bookshelf in the database.

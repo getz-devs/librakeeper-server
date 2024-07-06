@@ -5,102 +5,141 @@ import (
 	"errors"
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/getz-devs/librakeeper-server/internal/server/repository"
+	"github.com/getz-devs/librakeeper-server/internal/server/storage/mongo"
 	"log/slog"
-	"time"
 )
 
+// Custom Error Types:
 var (
-	ErrBookshelfNotFound = errors.New("bookshelf not found")
+	ErrBookshelfNotFound      = errors.New("bookshelf not found")
+	ErrNameRequired           = errors.New("bookshelf name is required")
+	ErrUserNotFoundInContext  = errors.New("userID not found in context")
+	ErrNotAuthorized          = errors.New("user is not authorized to perform this action")
+	ErrBookshelfAlreadyExists = errors.New("bookshelf with this name already exists for this user")
 )
 
+// BookshelfService handles business logic for bookshelves.
 type BookshelfService struct {
-	collection *mongo.Collection
-	log        *slog.Logger
+	repo repository.BookshelfRepo
+	log  *slog.Logger
 }
 
-func NewBookshelfService(collection *mongo.Collection, log *slog.Logger) *BookshelfService {
+// NewBookshelfService creates a new BookshelfService instance.
+func NewBookshelfService(repo repository.BookshelfRepo, log *slog.Logger) *BookshelfService {
 	return &BookshelfService{
-		collection: collection,
-		log:        log,
+		repo: repo,
+		log:  log,
 	}
 }
 
-func (s *BookshelfService) CreateBookshelf(ctx context.Context, bookshelf *models.Bookshelf) (*models.Bookshelf, error) {
-	bookshelf.CreatedAt = time.Now()
-	bookshelf.UpdatedAt = time.Now()
-
-	res, err := s.collection.InsertOne(ctx, bookshelf)
-	if err != nil {
-		s.log.Error("failed to create bookshelf", slog.Any("error", err))
-		return nil, fmt.Errorf("failed to create bookshelf: %w", err)
+// Create a new bookshelf.
+func (s *BookshelfService) Create(ctx context.Context, bookshelf *models.Bookshelf) error {
+	// Rule 1: Bookshelf Name Presence
+	if bookshelf.Name == "" {
+		return ErrNameRequired
 	}
 
-	bookshelf.ID = res.InsertedID.(primitive.ObjectID)
-	return bookshelf, nil
+	// Get userID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return ErrUserNotFoundInContext
+	}
+
+	// Rule 2: Unique Bookshelf Name per User
+	exists, err := s.repo.ExistsByNameAndUser(ctx, bookshelf.Name, userID)
+	if err != nil {
+		return fmt.Errorf("failed to check bookshelf existence: %w", err)
+	}
+	if exists {
+		return ErrBookshelfAlreadyExists
+	}
+
+	// Set the UserID for the bookshelf
+	bookshelf.UserID = userID
+
+	if err := s.repo.Create(ctx, bookshelf); err != nil {
+		return fmt.Errorf("failed to create bookshelf: %w", err)
+	}
+
+	return nil
 }
 
-func (s *BookshelfService) GetBookshelf(ctx context.Context, bookshelfID primitive.ObjectID) (*models.Bookshelf, error) {
-	var bookshelf models.Bookshelf
-	err := s.collection.FindOne(ctx, bson.M{"_id": bookshelfID}).Decode(&bookshelf)
+// GetByID retrieves a bookshelf by its ID.
+func (s *BookshelfService) GetByID(ctx context.Context, bookshelfID string) (*models.Bookshelf, error) {
+	bookshelf, err := s.repo.GetByID(ctx, bookshelfID)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
+		if errors.Is(err, mongo.ErrBookshelfNotFound) {
 			return nil, ErrBookshelfNotFound
 		}
 		return nil, fmt.Errorf("failed to get bookshelf: %w", err)
 	}
-	return &bookshelf, nil
+	return bookshelf, nil
 }
 
-func (s *BookshelfService) GetBookshelvesByUserID(ctx context.Context, userID primitive.ObjectID, page int64, limit int64) ([]*models.Bookshelf, error) {
-	findOptions := options.Find()
-	findOptions.SetSkip((page - 1) * limit)
-	findOptions.SetLimit(limit)
-
-	cursor, err := s.collection.Find(ctx, bson.M{"user_id": userID}, findOptions)
+// GetByUser retrieves a list of bookshelves for a specific user.
+func (s *BookshelfService) GetByUser(ctx context.Context, userID string, page int64, limit int64) ([]*models.Bookshelf, error) {
+	bookshelves, err := s.repo.GetByUser(ctx, userID, page, limit)
 	if err != nil {
-		s.log.Error("failed to get bookshelves", slog.Any("error", err))
-		return nil, fmt.Errorf("failed to get bookshelves: %w", err)
-	}
-	defer cursor.Close(ctx)
-
-	var bookshelves []*models.Bookshelf
-	for cursor.Next(ctx) {
-		var bookshelf models.Bookshelf
-		if err := cursor.Decode(&bookshelf); err != nil {
-			return nil, fmt.Errorf("failed to decode bookshelf: %w", err)
-		}
-		bookshelves = append(bookshelves, &bookshelf)
-	}
-
-	if err := cursor.Err(); err != nil {
-		return nil, fmt.Errorf("cursor error: %w", err)
+		return nil, fmt.Errorf("failed to get bookshelves by user ID: %w", err)
 	}
 	return bookshelves, nil
 }
 
-func (s *BookshelfService) UpdateBookshelf(ctx context.Context, bookshelfID primitive.ObjectID, update bson.M) error {
-	update["updated_at"] = time.Now()
-	_, err := s.collection.UpdateOne(ctx, bson.M{"_id": bookshelfID}, bson.M{"$set": update})
+// Update updates an existing bookshelf.
+func (s *BookshelfService) Update(ctx context.Context, bookshelfID string, update *models.BookshelfUpdate) error {
+	// Get the bookshelf
+	bookshelf, err := s.repo.GetByID(ctx, bookshelfID)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
+		if errors.Is(err, mongo.ErrBookshelfNotFound) {
 			return ErrBookshelfNotFound
 		}
+		return fmt.Errorf("failed to get bookshelf: %w", err)
+	}
+
+	// Get userID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return ErrUserNotFoundInContext
+	}
+
+	// Check bookshelf ownership
+	if bookshelf.UserID != userID {
+		return ErrNotAuthorized
+	}
+
+	if err := s.repo.Update(ctx, bookshelfID, update); err != nil {
 		return fmt.Errorf("failed to update bookshelf: %w", err)
 	}
+
 	return nil
 }
 
-func (s *BookshelfService) DeleteBookshelf(ctx context.Context, bookshelfID primitive.ObjectID) error {
-	_, err := s.collection.DeleteOne(ctx, bson.M{"_id": bookshelfID})
+// Delete deletes a bookshelf.
+func (s *BookshelfService) Delete(ctx context.Context, bookshelfID string) error {
+	// Get the bookshelf
+	bookshelf, err := s.repo.GetByID(ctx, bookshelfID)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
+		if errors.Is(err, mongo.ErrBookshelfNotFound) {
 			return ErrBookshelfNotFound
 		}
+		return fmt.Errorf("failed to get bookshelf: %w", err)
+	}
+
+	// Get userID from context
+	userID, ok := ctx.Value("userID").(string)
+	if !ok {
+		return ErrUserNotFoundInContext
+	}
+
+	// Check bookshelf ownership
+	if bookshelf.UserID != userID {
+		return ErrNotAuthorized
+	}
+
+	if err := s.repo.Delete(ctx, bookshelfID); err != nil {
 		return fmt.Errorf("failed to delete bookshelf: %w", err)
 	}
+
 	return nil
 }
