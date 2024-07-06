@@ -2,7 +2,7 @@ package middlewares
 
 import (
 	"context"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/auth"
+	"github.com/getz-devs/librakeeper-server/internal/server/auth"
 	"net/http"
 	"strings"
 
@@ -35,10 +35,8 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Add the UID to the context for further use.
-		ctx := context.WithValue(c.Request.Context(), "userID", token.UID)
-		c.Request = c.Request.WithContext(ctx) // Update the request's context
-
+		// Set the UID in the context for further use
+		c.Set("userID", token.UID)
 		c.Next()
 	}
 }

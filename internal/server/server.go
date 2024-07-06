@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/getz-devs/librakeeper-server/internal/server/auth"
 	"github.com/getz-devs/librakeeper-server/internal/server/config"
 	"github.com/getz-devs/librakeeper-server/internal/server/handlers"
 	"github.com/getz-devs/librakeeper-server/internal/server/routes"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/auth"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/books"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/bookshelves"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/book"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/bookshelf"
 	"github.com/getz-devs/librakeeper-server/internal/server/services/storage"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/users"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/user"
+	"github.com/getz-devs/librakeeper-server/internal/server/storage/mongo"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"log/slog"
@@ -47,11 +48,18 @@ func (s *Server) Initialize() error {
 		return fmt.Errorf("failed to initialize Firebase: %w", err)
 	}
 
-	_, collections := storage.Initialize(s.config, s.log)
+	db, err := storage.Initialize(s.config, s.log)
+	if err != nil {
+		return fmt.Errorf("failed to initialize Database: %w", err)
+	}
 
-	userService := users.NewUserService(collections.UsersCollection, s.log)
-	bookshelfService := bookshelves.NewBookshelfService(collections.BookshelvesCollection, s.log)
-	bookService := books.NewBookService(collections.BooksCollection, s.log)
+	userRepo := mongo.NewUserRepo(db, s.log)
+	bookRepo := mongo.NewBookRepo(db, s.log)
+	bookshelfRepo := mongo.NewBookshelfRepo(db, s.log)
+
+	userService := user.NewUserService(userRepo, s.log)
+	bookService := book.NewBookService(bookRepo, bookshelfRepo, s.log)
+	bookshelfService := bookshelf.NewBookshelfService(bookshelfRepo, s.log)
 
 	h := &routes.Handlers{
 		Users:       handlers.NewUserHandlers(userService, s.log),
