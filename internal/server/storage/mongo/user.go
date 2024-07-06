@@ -65,6 +65,16 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 	return &user, nil
 }
 
+// ExistsByID checks if a user with the given ID already exists.
+func (r *UserRepo) ExistsByID(ctx context.Context, id string) (bool, error) {
+	count, err := r.collection.CountDocuments(ctx, bson.M{"_id": id})
+	if err != nil {
+		r.log.Error("failed to check user existence by ID", slog.Any("error", err))
+		return false, fmt.Errorf("failed to check user existence by ID: %w", err)
+	}
+	return count > 0, nil
+}
+
 // Update updates a user in the database.
 func (r *UserRepo) Update(ctx context.Context, id string, update *models.UserUpdate) error {
 	update.UpdatedAt = time.Now()
