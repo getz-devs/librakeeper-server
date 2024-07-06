@@ -1,4 +1,4 @@
-package books
+package book
 
 import (
 	"context"
@@ -101,20 +101,20 @@ func (s *BookService) GetByID(ctx context.Context, bookID string) (*models.Book,
 	return book, nil
 }
 
-// GetByUserID retrieves a list of books for a specific user.
+// GetByUserID retrieves a list of book for a specific user.
 func (s *BookService) GetByUserID(ctx context.Context, userID string, page int64, limit int64) ([]*models.Book, error) {
 	books, err := s.repo.GetByUserID(ctx, userID, page, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get books by user ID: %w", err)
+		return nil, fmt.Errorf("failed to get book by user ID: %w", err)
 	}
 	return books, nil
 }
 
-// GetByBookshelfID retrieves books by bookshelf ID.
+// GetByBookshelfID retrieves book by bookshelf ID.
 func (s *BookService) GetByBookshelfID(ctx context.Context, bookshelfID string, page int64, limit int64) ([]*models.Book, error) {
 	books, err := s.repo.GetByBookshelfID(ctx, bookshelfID, page, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get books by bookshelf ID: %w", err)
+		return nil, fmt.Errorf("failed to get book by bookshelf ID: %w", err)
 	}
 	return books, nil
 }

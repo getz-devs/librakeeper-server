@@ -5,21 +5,21 @@ import (
 	"errors"
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/bookshelves"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/bookshelf"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 	"strconv"
 )
 
-// BookshelfHandlers handles HTTP requests related to bookshelves.
+// BookshelfHandlers handles HTTP requests related to bookshelf.
 type BookshelfHandlers struct {
-	service *bookshelves.BookshelfService
+	service *bookshelf.BookshelfService
 	log     *slog.Logger
 }
 
 // NewBookshelfHandlers creates a new BookshelfHandlers instance.
-func NewBookshelfHandlers(service *bookshelves.BookshelfService, log *slog.Logger) *BookshelfHandlers {
+func NewBookshelfHandlers(service *bookshelf.BookshelfService, log *slog.Logger) *BookshelfHandlers {
 	return &BookshelfHandlers{
 		service: service,
 		log:     log,
@@ -34,15 +34,15 @@ func (h *BookshelfHandlers) Create(c *gin.Context) {
 		return
 	}
 
-	var bookshelf models.Bookshelf
-	if err := c.BindJSON(&bookshelf); err != nil {
+	var b models.Bookshelf
+	if err := c.BindJSON(&b); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	ctx := context.WithValue(c.Request.Context(), "userID", userID)
-	if err := h.service.Create(ctx, &bookshelf); err != nil {
-		if errors.Is(err, bookshelves.ErrNameRequired) || errors.Is(err, bookshelves.ErrBookshelfAlreadyExists) {
+	if err := h.service.Create(ctx, &b); err != nil {
+		if errors.Is(err, bookshelf.ErrNameRequired) || errors.Is(err, bookshelf.ErrBookshelfAlreadyExists) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -52,7 +52,7 @@ func (h *BookshelfHandlers) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, bookshelf)
+	c.JSON(http.StatusCreated, b)
 }
 
 // GetByID retrieves a bookshelf by ID.
@@ -60,9 +60,9 @@ func (h *BookshelfHandlers) GetByID(c *gin.Context) {
 	bookshelfID := c.Param("id")
 
 	ctx := c.Request.Context()
-	bookshelf, err := h.service.GetByID(ctx, bookshelfID)
+	b, err := h.service.GetByID(ctx, bookshelfID)
 	if err != nil {
-		if errors.Is(err, bookshelves.ErrBookshelfNotFound) {
+		if errors.Is(err, bookshelf.ErrBookshelfNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -71,10 +71,10 @@ func (h *BookshelfHandlers) GetByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, bookshelf)
+	c.JSON(http.StatusOK, b)
 }
 
-// GetByUser retrieves bookshelves for a user.
+// GetByUser retrieves bookshelf for a user.
 func (h *BookshelfHandlers) GetByUser(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
@@ -101,7 +101,7 @@ func (h *BookshelfHandlers) GetByUser(c *gin.Context) {
 	result, err := h.service.GetByUser(ctx, userID.(string), page, limit)
 	if err != nil {
 		h.log.Error("failed to get result by user id", slog.Any("error", err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bookshelves by user ID"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bookshelf by user ID"})
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *BookshelfHandlers) Update(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "userID", userID)
 
 	if err := h.service.Update(ctx, bookshelfID, &update); err != nil {
-		if errors.Is(err, bookshelves.ErrBookshelfNotFound) || errors.Is(err, bookshelves.ErrNotAuthorized) {
+		if errors.Is(err, bookshelf.ErrBookshelfNotFound) || errors.Is(err, bookshelf.ErrNotAuthorized) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -158,7 +158,7 @@ func (h *BookshelfHandlers) Delete(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "userID", userID)
 
 	if err := h.service.Delete(ctx, bookshelfID); err != nil {
-		if errors.Is(err, bookshelves.ErrBookshelfNotFound) || errors.Is(err, bookshelves.ErrNotAuthorized) {
+		if errors.Is(err, bookshelf.ErrBookshelfNotFound) || errors.Is(err, bookshelf.ErrNotAuthorized) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}

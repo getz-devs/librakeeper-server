@@ -27,7 +27,7 @@ type UserRepo struct {
 // NewUserRepo creates a new UserRepo instance.
 func NewUserRepo(db *mongo.Database, log *slog.Logger) repository.UserRepo {
 	return &UserRepo{
-		collection: db.Collection("users"),
+		collection: db.Collection("user"),
 		log:        log,
 	}
 }

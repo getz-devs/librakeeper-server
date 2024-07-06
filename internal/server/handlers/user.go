@@ -5,20 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/users"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/user"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 )
 
-// UserHandlers handles HTTP requests related to users.
+// UserHandlers handles HTTP requests related to user.
 type UserHandlers struct {
-	service *users.UserService
+	service *user.UserService
 	log     *slog.Logger
 }
 
 // NewUserHandlers creates a new UserHandlers instance.
-func NewUserHandlers(service *users.UserService, log *slog.Logger) *UserHandlers {
+func NewUserHandlers(service *user.UserService, log *slog.Logger) *UserHandlers {
 	return &UserHandlers{
 		service: service,
 		log:     log,
@@ -33,18 +33,18 @@ func (h *UserHandlers) Create(c *gin.Context) {
 		return
 	}
 
-	var user models.User
-	if err := c.BindJSON(&user); err != nil {
+	var u models.User
+	if err := c.BindJSON(&u); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	user.ID = userID.(string) // Assign Firebase UID to user.ID
+	u.ID = userID.(string) // Assign Firebase UID to user.ID
 
 	ctx := c.Request.Context()
 
-	if err := h.service.Create(ctx, &user); err != nil {
-		if errors.Is(err, users.ErrNotAuthorized) {
+	if err := h.service.Create(ctx, &u); err != nil {
+		if errors.Is(err, user.ErrNotAuthorized) {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
 		}
@@ -53,7 +53,7 @@ func (h *UserHandlers) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, user)
+	c.JSON(http.StatusCreated, u)
 }
 
 // GetByID retrieves a user by ID.
@@ -61,9 +61,9 @@ func (h *UserHandlers) GetByID(c *gin.Context) {
 	userID := c.Param("id")
 
 	ctx := c.Request.Context()
-	user, err := h.service.GetByID(ctx, userID)
+	u, err := h.service.GetByID(ctx, userID)
 	if err != nil {
-		if errors.Is(err, users.ErrNotAuthorized) {
+		if errors.Is(err, user.ErrNotAuthorized) {
 			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 			return
 		}
@@ -72,7 +72,7 @@ func (h *UserHandlers) GetByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, u)
 }
 
 // Update updates a user's information.
@@ -94,7 +94,7 @@ func (h *UserHandlers) Update(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "userID", authUserID)
 
 	if err := h.service.Update(ctx, userID, &update); err != nil {
-		if errors.Is(err, users.ErrUserNotFound) || errors.Is(err, users.ErrNotAuthorized) {
+		if errors.Is(err, user.ErrUserNotFound) || errors.Is(err, user.ErrNotAuthorized) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -124,7 +124,7 @@ func (h *UserHandlers) Delete(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "userID", authUserID)
 
 	if err := h.service.Delete(ctx, userID); err != nil {
-		if errors.Is(err, users.ErrUserNotFound) || errors.Is(err, users.ErrNotAuthorized) {
+		if errors.Is(err, user.ErrUserNotFound) || errors.Is(err, user.ErrNotAuthorized) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}

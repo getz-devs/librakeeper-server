@@ -29,7 +29,7 @@ type BookRepo struct {
 // NewBookRepo creates a new BookRepo instance.
 func NewBookRepo(db *mongo.Database, log *slog.Logger) repository.BookRepo {
 	return &BookRepo{
-		collection: db.Collection("books"), // Note: Collection name corrected to "books"
+		collection: db.Collection("book"), // Note: Collection name corrected to "book"
 		log:        log,
 	}
 }
@@ -73,7 +73,7 @@ func (r *BookRepo) GetByID(ctx context.Context, id string) (*models.Book, error)
 	return &book, nil
 }
 
-// GetByUserID retrieves books associated with a specific user ID.
+// GetByUserID retrieves book associated with a specific user ID.
 func (r *BookRepo) GetByUserID(ctx context.Context, userID string, page int64, limit int64) ([]*models.Book, error) {
 	objectUserID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
@@ -86,19 +86,19 @@ func (r *BookRepo) GetByUserID(ctx context.Context, userID string, page int64, l
 
 	cursor, err := r.collection.Find(ctx, bson.M{"user_id": objectUserID}, findOptions)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get books by user ID: %w", err)
+		return nil, fmt.Errorf("failed to get book by user ID: %w", err)
 	}
 	defer cursor.Close(ctx)
 
 	var books []*models.Book
 	if err = cursor.All(ctx, &books); err != nil {
-		return nil, fmt.Errorf("failed to decode books: %w", err)
+		return nil, fmt.Errorf("failed to decode book: %w", err)
 	}
 
 	return books, nil
 }
 
-// GetByBookshelfID retrieves books belonging to a specific bookshelf ID.
+// GetByBookshelfID retrieves book belonging to a specific bookshelf ID.
 func (r *BookRepo) GetByBookshelfID(ctx context.Context, bookshelfID string, page int64, limit int64) ([]*models.Book, error) {
 	objectBookshelfID, err := primitive.ObjectIDFromHex(bookshelfID)
 	if err != nil {
@@ -111,20 +111,20 @@ func (r *BookRepo) GetByBookshelfID(ctx context.Context, bookshelfID string, pag
 
 	cursor, err := r.collection.Aggregate(ctx, mongo.Pipeline{matchStage, skipStage, limitStage})
 	if err != nil {
-		r.log.Error("failed to get books by bookshelf id", slog.Any("error", err))
-		return nil, fmt.Errorf("failed to get books by bookshelf id: %w", err)
+		r.log.Error("failed to get book by bookshelf id", slog.Any("error", err))
+		return nil, fmt.Errorf("failed to get book by bookshelf id: %w", err)
 	}
 	defer cursor.Close(ctx)
 
 	var books []*models.Book
 	if err = cursor.All(ctx, &books); err != nil {
-		return nil, fmt.Errorf("failed to decode books: %w", err)
+		return nil, fmt.Errorf("failed to decode book: %w", err)
 	}
 
 	return books, nil
 }
 
-// CountInBookshelf returns the number of books in a bookshelf.
+// CountInBookshelf returns the number of book in a bookshelf.
 func (r *BookRepo) CountInBookshelf(ctx context.Context, bookshelfID string) (int, error) {
 	objectBookshelfID, err := primitive.ObjectIDFromHex(bookshelfID)
 	if err != nil {
@@ -133,8 +133,8 @@ func (r *BookRepo) CountInBookshelf(ctx context.Context, bookshelfID string) (in
 
 	count, err := r.collection.CountDocuments(ctx, bson.M{"bookshelf_id": objectBookshelfID})
 	if err != nil {
-		r.log.Error("failed to count books by bookshelf ID", slog.Any("error", err))
-		return 0, fmt.Errorf("failed to count books by bookshelf ID: %w", err)
+		r.log.Error("failed to count book by bookshelf ID", slog.Any("error", err))
+		return 0, fmt.Errorf("failed to count book by bookshelf ID: %w", err)
 	}
 
 	return int(count), nil

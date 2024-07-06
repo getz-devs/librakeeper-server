@@ -5,28 +5,31 @@ import (
 	"errors"
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/books"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/book"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 	"strconv"
 )
 
+// BookHandlers handles HTTP requests related to books.
 type BookHandlers struct {
-	service *books.BookService
+	service *book.BookService
 	log     *slog.Logger
 }
 
-func NewBookHandlers(service *books.BookService, log *slog.Logger) *BookHandlers {
+// NewBookHandlers creates a new BookHandlers instance.
+func NewBookHandlers(service *book.BookService, log *slog.Logger) *BookHandlers {
 	return &BookHandlers{
 		service: service,
 		log:     log,
 	}
 }
 
-func (h *BookHandlers) CreateBook(c *gin.Context) {
-	var book models.Book
-	if err := c.BindJSON(&book); err != nil {
+// Create handles the creation of a new book.
+func (h *BookHandlers) Create(c *gin.Context) {
+	var b models.Book
+	if err := c.BindJSON(&b); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -39,22 +42,23 @@ func (h *BookHandlers) CreateBook(c *gin.Context) {
 
 	ctx := context.WithValue(c.Request.Context(), "userID", userID)
 
-	if err := h.service.Create(ctx, &book); err != nil {
+	if err := h.service.Create(ctx, &b); err != nil {
 		h.log.Error("failed to create book", slog.Any("error", err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create book"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, book)
+	c.JSON(http.StatusCreated, b)
 }
 
-func (h *BookHandlers) GetBook(c *gin.Context) {
+// GetByID retrieves a book by ID.
+func (h *BookHandlers) GetByID(c *gin.Context) {
 	bookID := c.Param("id")
 
 	ctx := c.Request.Context()
-	book, err := h.service.GetByID(ctx, bookID)
+	b, err := h.service.GetByID(ctx, bookID)
 	if err != nil {
-		if errors.Is(err, books.ErrBookNotFound) {
+		if errors.Is(err, book.ErrBookNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -63,10 +67,11 @@ func (h *BookHandlers) GetBook(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, book)
+	c.JSON(http.StatusOK, b)
 }
 
-func (h *BookHandlers) GetBooksByUserID(c *gin.Context) {
+// GetByUser retrieves books for a user.
+func (h *BookHandlers) GetByUser(c *gin.Context) {
 	pageStr := c.DefaultQuery("page", "1")
 	limitStr := c.DefaultQuery("limit", "10")
 
@@ -91,15 +96,16 @@ func (h *BookHandlers) GetBooksByUserID(c *gin.Context) {
 	ctx := c.Request.Context()
 	result, err := h.service.GetByUserID(ctx, userID.(string), page, limit)
 	if err != nil {
-		h.log.Error("failed to get result", slog.Any("error", err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get result"})
+		h.log.Error("failed to get books by user ID", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get books by user ID"})
 		return
 	}
 
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *BookHandlers) GetBooksByBookshelfID(c *gin.Context) {
+// GetByBookshelfID retrieves books from a specific bookshelf.
+func (h *BookHandlers) GetByBookshelfID(c *gin.Context) {
 	bookshelfID := c.Param("bookshelfId")
 
 	pageStr := c.DefaultQuery("page", "1")
@@ -127,15 +133,16 @@ func (h *BookHandlers) GetBooksByBookshelfID(c *gin.Context) {
 
 	result, err := h.service.GetByBookshelfID(ctx, bookshelfID, page, limit)
 	if err != nil {
-		h.log.Error("failed to get result by bookshelf id", slog.Any("error", err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get result by bookshelf ID"})
+		h.log.Error("failed to get books by bookshelf ID", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get books by bookshelf ID"})
 		return
 	}
 
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *BookHandlers) UpdateBook(c *gin.Context) {
+// Update handles updating a book.
+func (h *BookHandlers) Update(c *gin.Context) {
 	bookID := c.Param("id")
 
 	var update models.BookUpdate
@@ -153,7 +160,7 @@ func (h *BookHandlers) UpdateBook(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "userID", userID)
 
 	if err := h.service.Update(ctx, bookID, &update); err != nil {
-		if errors.Is(err, books.ErrBookNotFound) {
+		if errors.Is(err, book.ErrBookNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -171,7 +178,8 @@ func (h *BookHandlers) UpdateBook(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Book updated successfully"})
 }
 
-func (h *BookHandlers) DeleteBook(c *gin.Context) {
+// Delete handles the deletion of a book.
+func (h *BookHandlers) Delete(c *gin.Context) {
 	bookID := c.Param("id")
 
 	userID, exists := c.Get("userID")
@@ -183,7 +191,7 @@ func (h *BookHandlers) DeleteBook(c *gin.Context) {
 	ctx := context.WithValue(c.Request.Context(), "userID", userID)
 
 	if err := h.service.Delete(ctx, bookID); err != nil {
-		if errors.Is(err, books.ErrBookNotFound) {
+		if errors.Is(err, book.ErrBookNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}

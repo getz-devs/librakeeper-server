@@ -1,4 +1,4 @@
-package users
+package user
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
 	"github.com/getz-devs/librakeeper-server/internal/server/repository"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/books" // For ErrUserNotFoundInContext
+	"github.com/getz-devs/librakeeper-server/internal/server/services/book" // For ErrUserNotFoundInContext
 	"github.com/getz-devs/librakeeper-server/internal/server/storage/mongo"
 	"log/slog"
 )
@@ -18,7 +18,7 @@ var (
 	ErrUserNotFound          = errors.New("user not found")
 )
 
-// UserService handles business logic for users.
+// UserService handles business logic for user.
 type UserService struct {
 	repo repository.UserRepo
 	log  *slog.Logger
@@ -90,7 +90,7 @@ func (s *UserService) Delete(ctx context.Context, userID string) error {
 	// Get userID from context (for authorization)
 	ctxUserID, ok := ctx.Value("userID").(string)
 	if !ok {
-		return books.ErrUserNotFoundInContext
+		return book.ErrUserNotFoundInContext
 	}
 
 	// Rule: User Self-Deletion

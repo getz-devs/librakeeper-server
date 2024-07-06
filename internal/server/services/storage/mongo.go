@@ -37,9 +37,9 @@ func Initialize(cfg *config.Config, log *slog.Logger) (*mongo.Database, Collecti
 	_db = client.Database(cfg.Database.Name)
 	_log.Info("connected to mongodb", slog.String("database", cfg.Database.Name))
 
-	_collections.UsersCollection = _db.Collection("users")
-	_collections.BooksCollection = _db.Collection("books")
-	_collections.BookshelvesCollection = _db.Collection("bookshelves")
+	_collections.UsersCollection = _db.Collection("user")
+	_collections.BooksCollection = _db.Collection("book")
+	_collections.BookshelvesCollection = _db.Collection("bookshelf")
 
 	return _db, _collections
 }

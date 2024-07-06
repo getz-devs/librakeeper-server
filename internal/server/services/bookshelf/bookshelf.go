@@ -1,4 +1,4 @@
-package bookshelves
+package bookshelf
 
 import (
 	"context"
@@ -19,7 +19,7 @@ var (
 	ErrBookshelfAlreadyExists = errors.New("bookshelf with this name already exists for this user")
 )
 
-// BookshelfService handles business logic for bookshelves.
+// BookshelfService handles business logic for bookshelf.
 type BookshelfService struct {
 	repo repository.BookshelfRepo
 	log  *slog.Logger
@@ -77,11 +77,11 @@ func (s *BookshelfService) GetByID(ctx context.Context, bookshelfID string) (*mo
 	return bookshelf, nil
 }
 
-// GetByUser retrieves a list of bookshelves for a specific user.
+// GetByUser retrieves a list of bookshelf for a specific user.
 func (s *BookshelfService) GetByUser(ctx context.Context, userID string, page int64, limit int64) ([]*models.Bookshelf, error) {
 	bookshelves, err := s.repo.GetByUser(ctx, userID, page, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get bookshelves by user ID: %w", err)
+		return nil, fmt.Errorf("failed to get bookshelf by user ID: %w", err)
 	}
 	return bookshelves, nil
 }

@@ -29,7 +29,7 @@ type BookshelfRepo struct {
 // NewBookshelfRepo creates a new BookshelfRepo instance.
 func NewBookshelfRepo(db *mongo.Database, log *slog.Logger) repository.BookshelfRepo {
 	return &BookshelfRepo{
-		collection: db.Collection("bookshelves"),
+		collection: db.Collection("bookshelf"),
 		log:        log,
 	}
 }
@@ -74,7 +74,7 @@ func (r *BookshelfRepo) GetByID(ctx context.Context, id string) (*models.Bookshe
 	return &bookshelf, nil
 }
 
-// GetByUser retrieves bookshelves associated with a specific user ID.
+// GetByUser retrieves bookshelf associated with a specific user ID.
 func (r *BookshelfRepo) GetByUser(ctx context.Context, userID string, page int64, limit int64) ([]*models.Bookshelf, error) {
 	objectUserID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
@@ -87,20 +87,20 @@ func (r *BookshelfRepo) GetByUser(ctx context.Context, userID string, page int64
 
 	cursor, err := r.collection.Find(ctx, bson.M{"user_id": objectUserID}, findOptions)
 	if err != nil {
-		r.log.Error("failed to get bookshelves by user ID", slog.Any("error", err))
-		return nil, fmt.Errorf("failed to get bookshelves by user ID: %w", err)
+		r.log.Error("failed to get bookshelf by user ID", slog.Any("error", err))
+		return nil, fmt.Errorf("failed to get bookshelf by user ID: %w", err)
 	}
 	defer cursor.Close(ctx)
 
 	var bookshelves []*models.Bookshelf
 	if err = cursor.All(ctx, &bookshelves); err != nil {
-		return nil, fmt.Errorf("failed to decode bookshelves: %w", err)
+		return nil, fmt.Errorf("failed to decode bookshelf: %w", err)
 	}
 
 	return bookshelves, nil
 }
 
-// CountByUser returns the number of bookshelves owned by a user.
+// CountByUser returns the number of bookshelf owned by a user.
 func (r *BookshelfRepo) CountByUser(ctx context.Context, userID string) (int, error) {
 	objectUserID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
@@ -109,8 +109,8 @@ func (r *BookshelfRepo) CountByUser(ctx context.Context, userID string) (int, er
 
 	count, err := r.collection.CountDocuments(ctx, bson.M{"user_id": objectUserID})
 	if err != nil {
-		r.log.Error("failed to count bookshelves by user ID", slog.Any("error", err))
-		return 0, fmt.Errorf("failed to count bookshelves by user ID: %w", err)
+		r.log.Error("failed to count bookshelf by user ID", slog.Any("error", err))
+		return 0, fmt.Errorf("failed to count bookshelf by user ID: %w", err)
 	}
 
 	return int(count), nil
