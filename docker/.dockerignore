@@ -1,0 +1,38 @@
+# Исключаем сборочные артефакты
+**/*.exe
+**/*.exe~
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.test
+**/*.out
+
+# Исключаем временные файлы редактора
+**/*~
+**/*.swp
+**/*.swo
+**/*.swn
+*.log
+
+# Исключаем директории
+.git
+.gitignore
+node_modules
+vendor
+
+# Исключаем файлы конфигурации и кэш
+.env
+*.env
+.cache
+
+# Исключаем Dockerfile, docker-compose.yml и все внутри docker, чтобы избежать копирования самого файла .dockerignore
+docker/
+Dockerfile*
+
+# Исключаем бинарные файлы, если они есть в корне
+searcher
+searcher-agent
+server
+
+# Исключаем файлы тестов
+tests/

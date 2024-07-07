@@ -1,0 +1,31 @@
+# Используем официальный образ Golang
+FROM golang:1.22-alpine AS builder
+
+# Устанавливаем рабочую директорию внутри контейнера
+WORKDIR /app
+
+# Копируем весь проект (вверх на два уровня от текущей директории docker)
+COPY ../.. .
+
+# Загружаем зависимости
+RUN go mod download
+
+# Сборка бинарника для searcher
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o searcher cmd/searcher/main.go
+
+# Создаем минимальный образ для запуска
+FROM alpine:latest
+
+# Устанавливаем рабочую директорию внутри контейнера
+WORKDIR /root/
+
+# Копируем собранный бинарник из этапа сборки
+COPY --from=builder /app/searcher .
+
+# Копируем конфигурационные файлы
+COPY --from=builder /app/config/searcher /config
+
+EXPOSE 8081
+
+# Устанавливаем команду по умолчанию для запуска
+CMD ["./searcher"]
