@@ -15,6 +15,8 @@ import (
 	"github.com/getz-devs/librakeeper-server/internal/server/storage/mongo"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log/slog"
 	"net/http"
 	"os"
@@ -53,10 +55,18 @@ func (s *Server) Initialize() error {
 		return fmt.Errorf("failed to initialize Database: %w", err)
 	}
 
+	conn, err := grpc.NewClient(
+		s.config.GRPC.Addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	bookRepo := mongo.NewBookRepo(db, s.log, "user_books")
 	allBooksRepo := mongo.NewBookRepo(db, s.log, "all_books")
 	bookshelfRepo := mongo.NewBookshelfRepo(db, s.log)
-	searcherClient := search.NewSearcherClient(s.log) // TODO
+	searcherClient := search.NewSearcherClient(conn, s.log)
 
 	bookService := book.NewBookService(bookRepo, bookshelfRepo, s.log)
 	bookshelfService := bookshelf.NewBookshelfService(bookshelfRepo, s.log)

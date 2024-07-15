@@ -40,5 +40,19 @@ func (s *SearchHandlers) Simple(c *gin.Context) {
 }
 
 func (s *SearchHandlers) Advanced(c *gin.Context) {
-
+	const op = "handlers.SearchHandlers.Advanced"
+	log := s.log.With(slog.String("op", op))
+	isbn := c.Param("isbn")
+	ctx := c.Request.Context()
+	resp, err := s.service.Advanced(ctx, isbn)
+	if err != nil {
+		if errors.Is(err, search.ErrISBNNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		log.Error("failed to search", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search"})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
 }

@@ -5,7 +5,9 @@ import (
 	"errors"
 	searcherv1 "github.com/getz-devs/librakeeper-protos/gen/go/searcher"
 	"github.com/getz-devs/librakeeper-server/internal/server/repository"
+	"google.golang.org/grpc"
 	"log/slog"
+	"time"
 )
 
 var (
@@ -14,18 +16,36 @@ var (
 )
 
 type SearcherClient struct {
-	// grpc
-	log *slog.Logger
+	client searcherv1.SearcherClient // Используем gRPC клиент напрямую
+	log    *slog.Logger
 }
 
-func (s SearcherClient) SearchByISBN(ctx context.Context, isbn string) (*searcherv1.SearchByISBNResponse, error) {
-	//TODO implement me
-	panic("implement me")
-	return nil, nil
+func (s *SearcherClient) SearchByISBN(ctx context.Context, isbn string) (*searcherv1.SearchByISBNResponse, error) {
+	const op = "search.SearcherClient.SearchByISBN"
+	log := s.log.With(slog.String("op", op), slog.String("isbn", isbn))
+
+	if isbn == "" {
+		return nil, ErrISBNRequired
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
+
+	// Используем client напрямую, без создания нового
+	resp, err := s.client.SearchByISBN(ctx, &searcherv1.SearchByISBNRequest{Isbn: isbn})
+	if err != nil {
+		log.Error("failed to search by isbn", slog.Any("error", err))
+		return nil, err
+	}
+
+	return resp, nil
 }
 
-func NewSearcherClient(log *slog.Logger) repository.SearchRepo {
+func NewSearcherClient(conn *grpc.ClientConn, log *slog.Logger) repository.SearchRepo { // Передаем конфигурацию
+	client := searcherv1.NewSearcherClient(conn) // Создаем gRPC клиент
+
 	return &SearcherClient{
-		log: log,
+		client: client, // Сохраняем клиент в структуре
+		log:    log,
 	}
 }

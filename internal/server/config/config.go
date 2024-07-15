@@ -9,6 +9,7 @@ import (
 )
 
 // Config represents the application's configuration.
+
 type Config struct {
 	Env string `yaml:"env" env-default:"local"`
 
@@ -25,6 +26,10 @@ type Config struct {
 	Auth struct {
 		ConfigPath string `yaml:"config_path" env-required:"true"`
 	} `yaml:"auth"`
+
+	GRPC struct {
+		Addr string `yaml:"addr" env-default:"localhost:44044"`
+	} `yaml:"grpc"`
 }
 
 // MustLoad loads the configuration from the specified path and environment variables.
