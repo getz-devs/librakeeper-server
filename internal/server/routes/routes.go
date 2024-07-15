@@ -10,6 +10,7 @@ import (
 type Handlers struct {
 	Bookshelves *handlers.BookshelfHandlers
 	Books       *handlers.BookHandlers
+	Search      *handlers.SearchHandlers
 }
 
 // SetupRoutes sets up the API routes for the server.
@@ -32,10 +33,16 @@ func SetupRoutes(router *gin.Engine, h *Handlers) {
 	booksGroup := api.Group("/books")
 	{
 		booksGroup.GET("/", middlewares.AuthMiddleware(), h.Books.GetByUser)
-		booksGroup.GET("/:id", h.Books.GetByID)
+		booksGroup.GET("/:id", middlewares.AuthMiddleware(), h.Books.GetByID)
 		booksGroup.GET("/bookshelf/:id", middlewares.AuthMiddleware(), h.Books.GetByBookshelfID)
 		booksGroup.POST("/", middlewares.AuthMiddleware(), h.Books.Create)
 		booksGroup.PUT("/:id", middlewares.AuthMiddleware(), h.Books.Update)
 		booksGroup.DELETE("/:id", middlewares.AuthMiddleware(), h.Books.Delete)
+	}
+
+	searchGroup := api.Group("/search")
+	{
+		searchGroup.GET("/simple", middlewares.AuthMiddleware(), h.Search.Simple)
+		searchGroup.GET("/advanced", middlewares.AuthMiddleware(), h.Search.Advanced)
 	}
 }

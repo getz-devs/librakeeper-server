@@ -10,8 +10,8 @@ import (
 	"github.com/getz-devs/librakeeper-server/internal/server/routes"
 	"github.com/getz-devs/librakeeper-server/internal/server/services/book"
 	"github.com/getz-devs/librakeeper-server/internal/server/services/bookshelf"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/search"
 	"github.com/getz-devs/librakeeper-server/internal/server/services/storage"
-	"github.com/getz-devs/librakeeper-server/internal/server/services/user"
 	"github.com/getz-devs/librakeeper-server/internal/server/storage/mongo"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -53,18 +53,19 @@ func (s *Server) Initialize() error {
 		return fmt.Errorf("failed to initialize Database: %w", err)
 	}
 
-	userRepo := mongo.NewUserRepo(db, s.log)
-	bookRepo := mongo.NewBookRepo(db, s.log)
+	bookRepo := mongo.NewBookRepo(db, s.log, "user_books")
+	allBooksRepo := mongo.NewBookRepo(db, s.log, "all_books")
 	bookshelfRepo := mongo.NewBookshelfRepo(db, s.log)
+	searcherClient := search.NewSearcherClient(s.log) // TODO
 
-	userService := user.NewUserService(userRepo, s.log)
 	bookService := book.NewBookService(bookRepo, bookshelfRepo, s.log)
 	bookshelfService := bookshelf.NewBookshelfService(bookshelfRepo, s.log)
+	searchService := search.NewSearchService(searcherClient, allBooksRepo, s.log)
 
 	h := &routes.Handlers{
-		Users:       handlers.NewUserHandlers(userService, s.log),
-		Bookshelves: handlers.NewBookshelfHandlers(bookshelfService, s.log),
 		Books:       handlers.NewBookHandlers(bookService, s.log),
+		Bookshelves: handlers.NewBookshelfHandlers(bookshelfService, s.log),
+		Search:      handlers.NewSearchHandlers(searchService, s.log),
 	}
 
 	// Configure CORS

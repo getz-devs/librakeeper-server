@@ -27,9 +27,9 @@ type BookRepo struct {
 }
 
 // NewBookRepo creates a new BookRepo instance.
-func NewBookRepo(db *mongo.Database, log *slog.Logger) repository.BookRepo {
+func NewBookRepo(db *mongo.Database, log *slog.Logger, collectionName string) repository.BookRepo {
 	return &BookRepo{
-		collection: db.Collection("book"), // Note: Collection name corrected to "book"
+		collection: db.Collection(collectionName),
 		log:        log,
 	}
 }
