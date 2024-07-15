@@ -27,9 +27,9 @@ type BookRepo struct {
 }
 
 // NewBookRepo creates a new BookRepo instance.
-func NewBookRepo(db *mongo.Database, log *slog.Logger) repository.BookRepo {
+func NewBookRepo(db *mongo.Database, log *slog.Logger, collectionName string) repository.BookRepo {
 	return &BookRepo{
-		collection: db.Collection("book"), // Note: Collection name corrected to "book"
+		collection: db.Collection(collectionName),
 		log:        log,
 	}
 }
@@ -57,13 +57,8 @@ func (r *BookRepo) Create(ctx context.Context, book *models.Book) error {
 
 // GetByID retrieves a book from the database by its ID.
 func (r *BookRepo) GetByID(ctx context.Context, id string) (*models.Book, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, fmt.Errorf("invalid book ID: %w", err)
-	}
-
 	var book models.Book
-	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&book)
+	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&book)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrBookNotFound
@@ -75,16 +70,11 @@ func (r *BookRepo) GetByID(ctx context.Context, id string) (*models.Book, error)
 
 // GetByUserID retrieves book associated with a specific user ID.
 func (r *BookRepo) GetByUserID(ctx context.Context, userID string, page int64, limit int64) ([]*models.Book, error) {
-	objectUserID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID: %w", err)
-	}
-
 	findOptions := options.Find()
 	findOptions.SetSkip((page - 1) * limit)
 	findOptions.SetLimit(limit)
 
-	cursor, err := r.collection.Find(ctx, bson.M{"user_id": objectUserID}, findOptions)
+	cursor, err := r.collection.Find(ctx, bson.M{"user_id": userID}, findOptions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get book by user ID: %w", err)
 	}
@@ -100,12 +90,7 @@ func (r *BookRepo) GetByUserID(ctx context.Context, userID string, page int64, l
 
 // GetByBookshelfID retrieves book belonging to a specific bookshelf ID.
 func (r *BookRepo) GetByBookshelfID(ctx context.Context, bookshelfID string, page int64, limit int64) ([]*models.Book, error) {
-	objectBookshelfID, err := primitive.ObjectIDFromHex(bookshelfID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid bookshelf ID: %w", err)
-	}
-
-	matchStage := bson.D{{"$match", bson.D{{"bookshelf_id", objectBookshelfID}}}}
+	matchStage := bson.D{{"$match", bson.D{{"bookshelf_id", bookshelfID}}}}
 	skipStage := bson.D{{"$skip", (page - 1) * limit}}
 	limitStage := bson.D{{"$limit", limit}}
 
@@ -126,12 +111,7 @@ func (r *BookRepo) GetByBookshelfID(ctx context.Context, bookshelfID string, pag
 
 // CountInBookshelf returns the number of book in a bookshelf.
 func (r *BookRepo) CountInBookshelf(ctx context.Context, bookshelfID string) (int, error) {
-	objectBookshelfID, err := primitive.ObjectIDFromHex(bookshelfID)
-	if err != nil {
-		return 0, fmt.Errorf("invalid bookshelf ID: %w", err)
-	}
-
-	count, err := r.collection.CountDocuments(ctx, bson.M{"bookshelf_id": objectBookshelfID})
+	count, err := r.collection.CountDocuments(ctx, bson.M{"bookshelf_id": bookshelfID})
 	if err != nil {
 		r.log.Error("failed to count book by bookshelf ID", slog.Any("error", err))
 		return 0, fmt.Errorf("failed to count book by bookshelf ID: %w", err)
@@ -142,12 +122,7 @@ func (r *BookRepo) CountInBookshelf(ctx context.Context, bookshelfID string) (in
 
 // ExistsInBookshelf checks if a book with the given ISBN already exists in the bookshelf.
 func (r *BookRepo) ExistsInBookshelf(ctx context.Context, isbn, bookshelfID string) (bool, error) {
-	objectBookshelfID, err := primitive.ObjectIDFromHex(bookshelfID)
-	if err != nil {
-		return false, fmt.Errorf("invalid bookshelf ID: %w", err)
-	}
-
-	count, err := r.collection.CountDocuments(ctx, bson.M{"isbn": isbn, "bookshelf_id": objectBookshelfID})
+	count, err := r.collection.CountDocuments(ctx, bson.M{"isbn": isbn, "bookshelf_id": bookshelfID})
 	if err != nil {
 		r.log.Error("failed to check book existence", slog.Any("error", err))
 		return false, fmt.Errorf("failed to check book existence: %w", err)
@@ -158,13 +133,8 @@ func (r *BookRepo) ExistsInBookshelf(ctx context.Context, isbn, bookshelfID stri
 
 // Update updates a book in the database.
 func (r *BookRepo) Update(ctx context.Context, id string, update *models.BookUpdate) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return fmt.Errorf("invalid book ID: %w", err)
-	}
-
 	update.UpdatedAt = time.Now()
-	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": update})
+	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrBookNotFound
@@ -176,12 +146,7 @@ func (r *BookRepo) Update(ctx context.Context, id string, update *models.BookUpd
 
 // Delete removes a book from the database.
 func (r *BookRepo) Delete(ctx context.Context, id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return fmt.Errorf("invalid book ID: %w", err)
-	}
-
-	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrBookNotFound

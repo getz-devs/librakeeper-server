@@ -106,7 +106,7 @@ func (h *BookHandlers) GetByUser(c *gin.Context) {
 
 // GetByBookshelfID retrieves books from a specific bookshelf.
 func (h *BookHandlers) GetByBookshelfID(c *gin.Context) {
-	bookshelfID := c.Param("bookshelfId")
+	bookshelfID := c.Param("id")
 
 	pageStr := c.DefaultQuery("page", "1")
 	limitStr := c.DefaultQuery("limit", "10")

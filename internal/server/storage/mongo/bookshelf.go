@@ -57,13 +57,9 @@ func (r *BookshelfRepo) Create(ctx context.Context, bookshelf *models.Bookshelf)
 
 // GetByID retrieves a bookshelf from the database by its ID.
 func (r *BookshelfRepo) GetByID(ctx context.Context, id string) (*models.Bookshelf, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, fmt.Errorf("invalid bookshelf ID: %w", err)
-	}
-
 	var bookshelf models.Bookshelf
-	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&bookshelf)
+	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&bookshelf)
+	fmt.Printf("%+v\n", bookshelf)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, ErrBookshelfNotFound
@@ -76,16 +72,11 @@ func (r *BookshelfRepo) GetByID(ctx context.Context, id string) (*models.Bookshe
 
 // GetByUser retrieves bookshelf associated with a specific user ID.
 func (r *BookshelfRepo) GetByUser(ctx context.Context, userID string, page int64, limit int64) ([]*models.Bookshelf, error) {
-	objectUserID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID: %w", err)
-	}
-
 	findOptions := options.Find()
 	findOptions.SetSkip((page - 1) * limit)
 	findOptions.SetLimit(limit)
 
-	cursor, err := r.collection.Find(ctx, bson.M{"user_id": objectUserID}, findOptions)
+	cursor, err := r.collection.Find(ctx, bson.M{"user_id": userID}, findOptions)
 	if err != nil {
 		r.log.Error("failed to get bookshelf by user ID", slog.Any("error", err))
 		return nil, fmt.Errorf("failed to get bookshelf by user ID: %w", err)
@@ -102,12 +93,7 @@ func (r *BookshelfRepo) GetByUser(ctx context.Context, userID string, page int64
 
 // CountByUser returns the number of bookshelf owned by a user.
 func (r *BookshelfRepo) CountByUser(ctx context.Context, userID string) (int, error) {
-	objectUserID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return 0, fmt.Errorf("invalid user ID: %w", err)
-	}
-
-	count, err := r.collection.CountDocuments(ctx, bson.M{"user_id": objectUserID})
+	count, err := r.collection.CountDocuments(ctx, bson.M{"user_id": userID})
 	if err != nil {
 		r.log.Error("failed to count bookshelf by user ID", slog.Any("error", err))
 		return 0, fmt.Errorf("failed to count bookshelf by user ID: %w", err)
@@ -118,12 +104,7 @@ func (r *BookshelfRepo) CountByUser(ctx context.Context, userID string) (int, er
 
 // ExistsByNameAndUser checks if a bookshelf with the given name already exists for a user.
 func (r *BookshelfRepo) ExistsByNameAndUser(ctx context.Context, name, userID string) (bool, error) {
-	objectUserID, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return false, fmt.Errorf("invalid user ID: %w", err)
-	}
-
-	count, err := r.collection.CountDocuments(ctx, bson.M{"name": name, "user_id": objectUserID})
+	count, err := r.collection.CountDocuments(ctx, bson.M{"name": name, "user_id": userID})
 	if err != nil {
 		r.log.Error("failed to check bookshelf existence by name and user", slog.Any("error", err))
 		return false, fmt.Errorf("failed to check bookshelf existence by name and user: %w", err)
@@ -134,13 +115,8 @@ func (r *BookshelfRepo) ExistsByNameAndUser(ctx context.Context, name, userID st
 
 // Update updates a bookshelf in the database.
 func (r *BookshelfRepo) Update(ctx context.Context, id string, update *models.BookshelfUpdate) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return fmt.Errorf("invalid bookshelf ID: %w", err)
-	}
-
 	update.UpdatedAt = time.Now()
-	_, err = r.collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": update})
+	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrBookshelfNotFound
@@ -152,12 +128,7 @@ func (r *BookshelfRepo) Update(ctx context.Context, id string, update *models.Bo
 
 // Delete removes a bookshelf from the database.
 func (r *BookshelfRepo) Delete(ctx context.Context, id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return fmt.Errorf("invalid bookshelf ID: %w", err)
-	}
-
-	_, err = r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
+	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrBookshelfNotFound
