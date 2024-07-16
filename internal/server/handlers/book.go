@@ -42,7 +42,15 @@ func (h *BookHandlers) Create(c *gin.Context) {
 
 	ctx := context.WithValue(c.Request.Context(), "userID", userID)
 
-	if err := h.service.Create(ctx, &b); err != nil {
+	// Получаем флаг addToAll из параметров запроса
+	addToAllStr := c.Query("addToAll")
+	addToAll, _ := strconv.ParseBool(addToAllStr) // По умолчанию addToAll == false
+
+	// Вызываем сервис с addToAll
+	if err := h.service.Create(ctx, &b, addToAll); err != nil {
+		if errors.Is(err, book.ErrCantAddToAllBooks) {
+			c.JSON(http.StatusPartialContent, gin.H{"error": err.Error()})
+		}
 		h.log.Error("failed to create book", slog.Any("error", err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create book"})
 		return
@@ -64,6 +72,25 @@ func (h *BookHandlers) GetByID(c *gin.Context) {
 		}
 		h.log.Error("failed to get book", slog.Any("error", err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get book"})
+		return
+	}
+
+	c.JSON(http.StatusOK, b)
+}
+
+// GetByISBN retrieves a book by its ISBN.
+func (h *BookHandlers) GetByISBN(c *gin.Context) {
+	isbn := c.Param("isbn")
+
+	ctx := c.Request.Context()
+	b, err := h.service.GetByISBN(ctx, isbn)
+	if err != nil {
+		if errors.Is(err, book.ErrBookNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		h.log.Error("failed to get book by ISBN", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get book by ISBN"})
 		return
 	}
 
