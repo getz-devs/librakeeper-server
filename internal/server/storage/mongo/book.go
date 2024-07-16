@@ -68,6 +68,19 @@ func (r *BookRepo) GetByID(ctx context.Context, id string) (*models.Book, error)
 	return &book, nil
 }
 
+// GetByISBN retrieves a book from the database by its ISBN.
+func (r *BookRepo) GetByISBN(ctx context.Context, isbn string) (*models.Book, error) {
+	var book models.Book
+	err := r.collection.FindOne(ctx, bson.M{"isbn": isbn}).Decode(&book)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrBookNotFound
+		}
+		return nil, fmt.Errorf("failed to get book by ISBN: %w", err)
+	}
+	return &book, nil
+}
+
 // GetByUserID retrieves book associated with a specific user ID.
 func (r *BookRepo) GetByUserID(ctx context.Context, userID string, page int64, limit int64) ([]*models.Book, error) {
 	findOptions := options.Find()

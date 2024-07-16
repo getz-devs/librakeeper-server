@@ -56,34 +56,38 @@ func (s *BookService) Create(ctx context.Context, book *models.Book, addToAll bo
 		return ErrUserNotFoundInContext
 	}
 
-	bookshelf, err := s.bookshelfRepo.GetByID(ctx, book.BookshelfID)
-	if err != nil {
-		if errors.Is(err, mongo.ErrBookshelfNotFound) {
-			return ErrBookshelfNotFound
+	if book.BookshelfID != "" {
+		// if bookshelf specified, check bookshelf
+
+		bookshelf, err := s.bookshelfRepo.GetByID(ctx, book.BookshelfID)
+		if err != nil {
+			if errors.Is(err, mongo.ErrBookshelfNotFound) {
+				return ErrBookshelfNotFound
+			}
+			return fmt.Errorf("failed to get bookshelf: %w", err)
 		}
-		return fmt.Errorf("failed to get bookshelf: %w", err)
-	}
 
-	if bookshelf.UserID != userID {
-		return ErrNotAuthorized
-	}
+		if bookshelf.UserID != userID {
+			return ErrNotAuthorized
+		}
 
-	// Rule 4: Book Limit per Bookshelf
-	bookCount, err := s.repo.CountInBookshelf(ctx, book.BookshelfID)
-	if err != nil {
-		return fmt.Errorf("failed to get book count for bookshelf: %w", err)
-	}
-	if bookCount >= s.bookLimit {
-		return ErrBookshelfLimitReached
-	}
+		// Rule 4: Book Limit per Bookshelf
+		bookCount, err := s.repo.CountInBookshelf(ctx, book.BookshelfID)
+		if err != nil {
+			return fmt.Errorf("failed to get book count for bookshelf: %w", err)
+		}
+		if bookCount >= s.bookLimit {
+			return ErrBookshelfLimitReached
+		}
 
-	// Rule 5: Unique Book within Bookshelf
-	exists, err := s.repo.ExistsInBookshelf(ctx, book.ISBN, book.BookshelfID)
-	if err != nil {
-		return fmt.Errorf("failed to check book existence: %w", err)
-	}
-	if exists {
-		return ErrBookAlreadyExists
+		// Rule 5: Unique Book within Bookshelf
+		exists, err := s.repo.ExistsInBookshelf(ctx, book.ISBN, book.BookshelfID)
+		if err != nil {
+			return fmt.Errorf("failed to check book existence: %w", err)
+		}
+		if exists {
+			return ErrBookAlreadyExists
+		}
 	}
 
 	if err := s.repo.Create(ctx, book); err != nil {
@@ -92,8 +96,8 @@ func (s *BookService) Create(ctx context.Context, book *models.Book, addToAll bo
 
 	// Добавляем книгу в allBooksRepo, если addToAll == true
 	if addToAll {
-		// Перед добавлением в allBooksRepo, убедитесь, что книга еще не существует
-		existingBook, err := s.allBooksRepo.GetByID(ctx, book.ISBN)
+		// Проверяем, существует ли книга по ISBN
+		_, err := s.allBooksRepo.GetByISBN(ctx, book.ISBN) // Используем GetByISBN
 		if err != nil && !errors.Is(err, mongo.ErrBookNotFound) {
 			s.log.Error("failed to check for existing book in allBooksRepo", slog.Any("error", err))
 			return fmt.Errorf("failed to check for existing book in allBooksRepo: %w", err)
@@ -105,30 +109,21 @@ func (s *BookService) Create(ctx context.Context, book *models.Book, addToAll bo
 				Title:       book.Title,
 				Author:      book.Author,
 				ISBN:        book.ISBN,
+				Publishing:  book.Publishing,
 				Description: book.Description,
 				CoverImage:  book.CoverImage,
+				ShopName:    book.ShopName,
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
+				// UserID и BookshelfID не устанавливаем
 			}
 
 			if err := s.allBooksRepo.Create(ctx, allBook); err != nil {
 				s.log.Error("failed to create book in allBooksRepo", slog.Any("error", err))
 				return ErrCantAddToAllBooks
 			}
-		} else {
-			// Книга уже есть в allBooksRepo, обновляем информацию
-			update := &models.BookUpdate{
-				Title:       &book.Title,
-				Author:      &book.Author,
-				Description: &book.Description,
-				CoverImage:  &book.CoverImage,
-				UpdatedAt:   time.Now(),
-			}
-			if err := s.allBooksRepo.Update(ctx, existingBook.ID, update); err != nil {
-				s.log.Error("failed to update book in allBooksRepo", slog.Any("error", err))
-				return ErrCantAddToAllBooks
-			}
 		}
+		// Если книга уже существует, ничего не делаем
 	}
 
 	return nil

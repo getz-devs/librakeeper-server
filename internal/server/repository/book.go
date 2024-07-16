@@ -9,6 +9,7 @@ import (
 type BookRepo interface {
 	Create(ctx context.Context, book *models.Book) error
 	GetByID(ctx context.Context, id string) (*models.Book, error)
+	GetByISBN(ctx context.Context, isbn string) (*models.Book, error)
 	GetByUserID(ctx context.Context, userID string, page int64, limit int64) ([]*models.Book, error)
 	GetByBookshelfID(ctx context.Context, bookshelfID string, page int64, limit int64) ([]*models.Book, error)
 	CountInBookshelf(ctx context.Context, bookshelfID string) (int, error)
