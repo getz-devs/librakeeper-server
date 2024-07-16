@@ -22,6 +22,8 @@ func NewSearchHandlers(service *search.SearchService, log *slog.Logger) *SearchH
 }
 
 func (s *SearchHandlers) Simple(c *gin.Context) {
+	const op = "handlers.SearchHandlers.Simple"
+	log := s.log.With(slog.String("op", op))
 	isbn := c.Query("isbn")
 	ctx := c.Request.Context()
 	resp, err := s.service.Simple(ctx, isbn)
@@ -30,13 +32,11 @@ func (s *SearchHandlers) Simple(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		s.log.Error("failed to get bookshelf", slog.Any("error", err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get bookshelf"})
+		log.Error("failed to search", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search"})
 		return
 	}
-
 	c.JSON(http.StatusOK, resp)
-
 }
 
 func (s *SearchHandlers) Advanced(c *gin.Context) {

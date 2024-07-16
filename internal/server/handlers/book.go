@@ -42,7 +42,15 @@ func (h *BookHandlers) Create(c *gin.Context) {
 
 	ctx := context.WithValue(c.Request.Context(), "userID", userID)
 
-	if err := h.service.Create(ctx, &b); err != nil {
+	// Получаем флаг addToAll из параметров запроса
+	addToAllStr := c.Query("addToAll")
+	addToAll, _ := strconv.ParseBool(addToAllStr) // По умолчанию addToAll == false
+
+	// Вызываем сервис с addToAll
+	if err := h.service.Create(ctx, &b, addToAll); err != nil {
+		if errors.Is(err, book.ErrCantAddToAllBooks) {
+			c.JSON(http.StatusPartialContent, gin.H{"error": err.Error()})
+		}
 		h.log.Error("failed to create book", slog.Any("error", err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create book"})
 		return
