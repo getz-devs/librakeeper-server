@@ -25,7 +25,8 @@ func (s *SearchService) Simple(ctx context.Context, isbn string) (*models.Search
 		return nil, ErrISBNRequired
 	}
 
-	book, err := s.allBooksRepo.GetByID(ctx, isbn)
+	// Используем GetByISBN для поиска по ISBN
+	book, err := s.allBooksRepo.GetByISBN(ctx, isbn)
 	if err != nil {
 		if errors.Is(err, mongo.ErrBookNotFound) {
 			return nil, ErrISBNNotFound
@@ -59,6 +60,7 @@ func (s *SearchService) Advanced(ctx context.Context, isbn string) (*models.Sear
 	var books []*models.Book
 	for _, protoBook := range grpcResponse.Books {
 		book := &models.Book{
+			ISBN:       isbn,
 			Title:      protoBook.Title,
 			Author:     protoBook.Author,
 			Publishing: protoBook.Publishing,

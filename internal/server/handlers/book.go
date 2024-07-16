@@ -78,6 +78,25 @@ func (h *BookHandlers) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, b)
 }
 
+// GetByISBN retrieves a book by its ISBN.
+func (h *BookHandlers) GetByISBN(c *gin.Context) {
+	isbn := c.Param("isbn")
+
+	ctx := c.Request.Context()
+	b, err := h.service.GetByISBN(ctx, isbn)
+	if err != nil {
+		if errors.Is(err, book.ErrBookNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		h.log.Error("failed to get book by ISBN", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get book by ISBN"})
+		return
+	}
+
+	c.JSON(http.StatusOK, b)
+}
+
 // GetByUser retrieves books for a user.
 func (h *BookHandlers) GetByUser(c *gin.Context) {
 	pageStr := c.DefaultQuery("page", "1")

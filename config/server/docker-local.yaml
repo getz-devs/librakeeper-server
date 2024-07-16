@@ -7,7 +7,7 @@ server:
     - http://localhost:3000
 
 database:
-  uri: mongodb://mongo:27017
+  uri: mongodb://mongodb/
   name: docker_server
 
 auth:
