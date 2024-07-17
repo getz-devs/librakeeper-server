@@ -41,6 +41,16 @@ func SetupRoutes(router *gin.Engine, h *Handlers) {
 		booksGroup.DELETE("/:id", middlewares.AuthMiddleware(), h.Books.Delete)
 	}
 
+	// Bookshelf routes
+	bookshelvesGroup := api.Group("/bookshelves")
+	{
+		bookshelvesGroup.POST("/add", middlewares.AuthMiddleware(), h.Bookshelves.Create)
+		bookshelvesGroup.GET("/", middlewares.AuthMiddleware(), h.Bookshelves.GetByUser)
+		bookshelvesGroup.GET("/:id", middlewares.AuthMiddleware(), h.Bookshelves.GetByID)
+		bookshelvesGroup.PUT("/:id", middlewares.AuthMiddleware(), h.Bookshelves.Update)
+		bookshelvesGroup.DELETE("/:id", middlewares.AuthMiddleware(), h.Bookshelves.Delete)
+	}
+
 	searchGroup := api.Group("/search")
 	{
 		searchGroup.GET("/simple", middlewares.AuthMiddleware(), h.Search.Simple)

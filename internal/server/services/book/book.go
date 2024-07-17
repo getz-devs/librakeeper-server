@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/getz-devs/librakeeper-server/internal/server/models"
 	"github.com/getz-devs/librakeeper-server/internal/server/repository"
+	"github.com/getz-devs/librakeeper-server/internal/server/services/search"
 	"github.com/getz-devs/librakeeper-server/internal/server/storage/mongo"
 	"log/slog"
 	"time"
@@ -21,6 +22,7 @@ var (
 	ErrBookshelfLimitReached  = errors.New("bookshelf has reached the book limit")
 	ErrBookAlreadyExists      = errors.New("book with this ISBN already exists in this bookshelf")
 	ErrCantAddToAllBooks      = errors.New("error adding book to all books")
+	ErrBookAlreadyExistsInALL = errors.New("book already exist in all books")
 )
 
 // BookService defines the interface for book service operations.
@@ -28,23 +30,25 @@ type BookService struct {
 	repo          repository.BookRepo
 	allBooksRepo  repository.BookRepo
 	bookshelfRepo repository.BookshelfRepo
+	searcher      *search.SearchService
 	log           *slog.Logger
 	bookLimit     int
 }
 
 // NewBookService creates a new BookService instance.
-func NewBookService(repo repository.BookRepo, allBooksRepo repository.BookRepo, bookshelfRepo repository.BookshelfRepo, log *slog.Logger) *BookService {
+func NewBookService(repo repository.BookRepo, allBooksRepo repository.BookRepo, bookshelfRepo repository.BookshelfRepo, searcher *search.SearchService, log *slog.Logger) *BookService {
 	return &BookService{
 		repo:          repo,
 		allBooksRepo:  allBooksRepo,
 		bookshelfRepo: bookshelfRepo,
+		searcher:      searcher,
 		log:           log,
 		bookLimit:     1000, // TODO: Read from config
 	}
 }
 
 // Create creates a new book.
-func (s *BookService) Create(ctx context.Context, book *models.Book, addToAll bool) error {
+func (s *BookService) Create(ctx context.Context, book *models.Book) error {
 	// Rule 2: Book Title & Author Presence
 	if book.Title == "" || book.Author == "" {
 		return ErrTitleAndAuthorRequired
@@ -92,38 +96,6 @@ func (s *BookService) Create(ctx context.Context, book *models.Book, addToAll bo
 
 	if err := s.repo.Create(ctx, book); err != nil {
 		return fmt.Errorf("failed to create book: %w", err)
-	}
-
-	// Добавляем книгу в allBooksRepo, если addToAll == true
-	if addToAll {
-		// Проверяем, существует ли книга по ISBN
-		_, err := s.allBooksRepo.GetByISBN(ctx, book.ISBN) // Используем GetByISBN
-		if err != nil && !errors.Is(err, mongo.ErrBookNotFound) {
-			s.log.Error("failed to check for existing book in allBooksRepo", slog.Any("error", err))
-			return fmt.Errorf("failed to check for existing book in allBooksRepo: %w", err)
-		}
-
-		if errors.Is(err, mongo.ErrBookNotFound) {
-			// Книги нет в allBooksRepo, можно добавить
-			allBook := &models.Book{
-				Title:       book.Title,
-				Author:      book.Author,
-				ISBN:        book.ISBN,
-				Publishing:  book.Publishing,
-				Description: book.Description,
-				CoverImage:  book.CoverImage,
-				ShopName:    book.ShopName,
-				CreatedAt:   time.Now(),
-				UpdatedAt:   time.Now(),
-				// UserID и BookshelfID не устанавливаем
-			}
-
-			if err := s.allBooksRepo.Create(ctx, allBook); err != nil {
-				s.log.Error("failed to create book in allBooksRepo", slog.Any("error", err))
-				return ErrCantAddToAllBooks
-			}
-		}
-		// Если книга уже существует, ничего не делаем
 	}
 
 	return nil
@@ -247,4 +219,53 @@ func (s *BookService) Delete(ctx context.Context, bookID string) error {
 	}
 
 	return nil
+}
+
+func (s *BookService) AddAdvanced(ctx context.Context, isbn string, index int) error {
+	resp, err := s.searcher.Advanced(ctx, isbn)
+	if err != nil {
+		if errors.Is(err, search.ErrISBNNotFound) {
+			return fmt.Errorf("nothing found by isbn: %w", err)
+		}
+		s.log.Error("failed to search", slog.Any("error", err))
+		return fmt.Errorf("failed to search: %w", err)
+	}
+
+	if index >= len(resp.Books) {
+		return errors.New("invalid index")
+	}
+
+	// Добавляем книгу в allBooksRepo
+	// Проверяем, существует ли книга по ISBN
+	_, err = s.allBooksRepo.GetByISBN(ctx, isbn)
+	if errors.Is(err, mongo.ErrBookNotFound) {
+		// Книги нет в allBooksRepo, можно добавить
+		book := resp.Books[index]
+		allBook := &models.Book{
+			Title:       book.Title,
+			Author:      book.Author,
+			ISBN:        book.ISBN,
+			Publishing:  book.Publishing,
+			Description: book.Description,
+			CoverImage:  book.CoverImage,
+			ShopName:    book.ShopName,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			// UserID и BookshelfID не устанавливаем
+		}
+
+		if err := s.allBooksRepo.Create(ctx, allBook); err != nil {
+			s.log.Error("failed to create book in allBooksRepo", slog.Any("error", err))
+			return ErrCantAddToAllBooks
+		}
+
+		return nil
+	}
+	if err != nil {
+		s.log.Error("failed to check for existing book in allBooksRepo", slog.Any("error", err))
+		return fmt.Errorf("failed to check for existing book in allBooksRepo: %w", err)
+	}
+
+	return ErrBookAlreadyExistsInALL
+	// Если книга уже существует, ничего не делаем
 }

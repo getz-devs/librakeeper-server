@@ -42,15 +42,8 @@ func (h *BookHandlers) Create(c *gin.Context) {
 
 	ctx := context.WithValue(c.Request.Context(), "userID", userID)
 
-	// Получаем флаг addToAll из параметров запроса
-	addToAllStr := c.Query("addToAll")
-	addToAll, _ := strconv.ParseBool(addToAllStr) // По умолчанию addToAll == false
-
 	// Вызываем сервис с addToAll
-	if err := h.service.Create(ctx, &b, addToAll); err != nil {
-		if errors.Is(err, book.ErrCantAddToAllBooks) {
-			c.JSON(http.StatusPartialContent, gin.H{"error": err.Error()})
-		}
+	if err := h.service.Create(ctx, &b); err != nil {
 		h.log.Error("failed to create book", slog.Any("error", err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create book"})
 		return
@@ -228,4 +221,29 @@ func (h *BookHandlers) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Book deleted successfully"})
+}
+
+func (h *BookHandlers) AddAdvanced(c *gin.Context) {
+	isbn := c.Query("isbn")
+	indexStr := c.Query("index")
+	index, err := strconv.Atoi(indexStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid index"})
+		return
+	}
+
+	// Вызываем сервис с addToAll
+	err = h.service.AddAdvanced(c.Request.Context(), isbn, index)
+	if errors.Is(err, book.ErrBookAlreadyExistsInALL) {
+		c.JSON(http.StatusNotModified, gin.H{"warning": err.Error()})
+		return
+	}
+
+	if err != nil {
+		h.log.Error("failed to add book to all from advanced search", slog.Any("error", err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create book"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"status": "ok"})
 }

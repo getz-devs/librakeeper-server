@@ -68,9 +68,9 @@ func (s *Server) Initialize() error {
 	bookshelfRepo := mongo.NewBookshelfRepo(db, s.log)
 	searcherClient := search.NewSearcherClient(conn, s.log)
 
-	bookService := book.NewBookService(bookRepo, allBooksRepo, bookshelfRepo, s.log)
-	bookshelfService := bookshelf.NewBookshelfService(bookshelfRepo, s.log)
 	searchService := search.NewSearchService(searcherClient, allBooksRepo, s.log)
+	bookService := book.NewBookService(bookRepo, allBooksRepo, bookshelfRepo, searchService, s.log)
+	bookshelfService := bookshelf.NewBookshelfService(bookshelfRepo, s.log)
 
 	h := &routes.Handlers{
 		Books:       handlers.NewBookHandlers(bookService, s.log),
