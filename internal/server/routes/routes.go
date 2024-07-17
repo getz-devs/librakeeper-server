@@ -19,16 +19,6 @@ func SetupRoutes(router *gin.Engine, h *Handlers) {
 
 	api.GET("/health", handlers.HealthCheck)
 
-	// Bookshelf routes
-	bookshelvesGroup := api.Group("/bookshelves")
-	{
-		bookshelvesGroup.POST("/add", middlewares.AuthMiddleware(), h.Bookshelves.Create)
-		bookshelvesGroup.GET("/", middlewares.AuthMiddleware(), h.Bookshelves.GetByUser)
-		bookshelvesGroup.GET("/:id", middlewares.AuthMiddleware(), h.Bookshelves.GetByID)
-		bookshelvesGroup.PUT("/:id", middlewares.AuthMiddleware(), h.Bookshelves.Update)
-		bookshelvesGroup.DELETE("/:id", middlewares.AuthMiddleware(), h.Bookshelves.Delete)
-	}
-
 	// Book routes
 	booksGroup := api.Group("/books")
 	{
