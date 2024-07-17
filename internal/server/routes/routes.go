@@ -23,6 +23,7 @@ func SetupRoutes(router *gin.Engine, h *Handlers) {
 	booksGroup := api.Group("/books")
 	{
 		booksGroup.POST("/add", middlewares.AuthMiddleware(), h.Books.Create)
+		booksGroup.POST("/add/advanced", middlewares.AuthMiddleware(), h.Books.AddAdvanced)
 		booksGroup.GET("/", middlewares.AuthMiddleware(), h.Books.GetByUser)
 		booksGroup.GET("/:id", middlewares.AuthMiddleware(), h.Books.GetByID)
 		booksGroup.GET("/isbn/:isbn", middlewares.AuthMiddleware(), h.Books.GetByISBN)
