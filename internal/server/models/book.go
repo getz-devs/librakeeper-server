@@ -25,7 +25,8 @@ type Book struct {
 // BookUpdate represents fields that can be updated in a Book.
 type BookUpdate struct {
 	ISBN        *string   `bson:"isbn,omitempty" json:"isbn,omitempty"`
-	Title       *string   `bson:"title,omitempty" json:"title,omitempty"` // Optional fields for update
+	BookshelfID *string   `bson:"bookshelf_id,omitempty" json:"bookshelf_id,omitempty"`
+	Title       *string   `bson:"title,omitempty" json:"title,omitempty"`
 	Author      *string   `bson:"author,omitempty" json:"author,omitempty"`
 	Publishing  *string   `bson:"publishing" json:"publishing"`
 	Description *string   `bson:"description,omitempty" json:"description,omitempty"`
