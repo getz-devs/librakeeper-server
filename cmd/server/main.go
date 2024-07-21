@@ -10,20 +10,12 @@ import (
 
 func main() {
 	cfg := config.MustLoad()
-
 	log := prettylog.SetupLogger(cfg.Env)
-	log.Info("starting librakeeper srv", slog.String("env", cfg.Env), slog.Int("port", cfg.Server.Port))
+	log.Info("starting librakeeper server", slog.String("env", cfg.Env), slog.Int("port", cfg.Server.Port))
 
-	// Create and initialize the srv
-	srv := server.NewServer(cfg, log)
-	if err := srv.Initialize(); err != nil {
-		log.Error("failed to initialize srv", slog.Any("error", err))
-		os.Exit(1)
-	}
-
-	// Run the srv
-	if err := srv.Run(); err != nil {
-		log.Error("failed to run srv", slog.Any("error", err))
+	// Create and run the server
+	if err := server.NewServer(cfg, log).Run(); err != nil {
+		log.Error("server error", slog.Any("error", err))
 		os.Exit(1)
 	}
 }
