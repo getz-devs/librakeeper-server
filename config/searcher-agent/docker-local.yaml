@@ -1,0 +1,9 @@
+env: "local"
+
+queue_name: "searcher"
+connect_url: "amqp://test:test@rabbitmq/"
+
+database_mongo:
+  connect_url: "mongodb://mongodb/"
+  database_name: "docker_searcher"
+  collection_name_books: "books"

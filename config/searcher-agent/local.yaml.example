@@ -1,0 +1,9 @@
+env: "local"
+
+queue_name: "searcher"
+connect_url: "amqp://guest:guest@192.168.1.161:5672/"
+
+database_mongo:
+  connect_url: "mongodb://192.168.1.199:27017/"
+  database_name: "TempData"
+  collection_name_books: "books"

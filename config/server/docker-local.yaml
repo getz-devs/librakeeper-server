@@ -1,0 +1,17 @@
+env: "local"
+
+server:
+  port: 8080
+  allowed_origins:
+    - https://libra.potat.dev
+    - http://localhost:3000
+
+database:
+  uri: mongodb://mongodb/
+  name: docker_server
+
+auth:
+  config_path: /config/secret.json
+
+grpc:
+  addr: searcher:8081

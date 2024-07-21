@@ -1,0 +1,82 @@
+services:
+  searcher:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.searcher
+    volumes:
+      - ../config/searcher:/config
+    ports:
+      - "8081:8081"
+    environment:
+      - CONFIG_PATH=/config/docker-local.yaml
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  searcher-agent:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.searcher-agent
+    volumes:
+      - ../config/searcher-agent:/config
+    environment:
+      - CONFIG_PATH=/config/docker-local.yaml
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    volumes:
+      - ../config/server:/config
+    ports:
+      - "8080:8080"
+    environment:
+      - CONFIG_PATH=/config/docker-local.yaml
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      searcher:
+        condition: service_started
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=test
+      - RABBITMQ_DEFAULT_PASS=test
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  mongo-data:
