@@ -2,7 +2,7 @@ package tests
 
 import (
 	searcherv1 "github.com/getz-devs/librakeeper-protos/gen/go/searcher"
-	"github.com/getz-devs/librakeeper-server/tests/searcher/suite"
+	"github.com/getz-devs/librakeeper-server/tests/integration/searcher/suite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"math/rand"
